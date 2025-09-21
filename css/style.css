@@ -138,7 +138,7 @@ body {
     text-align: center;
     color: white;
     overflow: hidden;
-    background: #222 url('../imagenes/lampara-dahlia-gris.jpg') center center / cover no-repeat;
+    background: #222 url('../imagenes/portada.jpg') center center / cover no-repeat;
 }
 .hero__slider-container {
     position: absolute;
