@@ -77,7 +77,7 @@ body { font-family: var(--fuente-principal); background-color: var(--color-fondo
     padding: 8rem 0;
     text-align: center;
     color: white;
-    background: url('../imagenes/moldes-galletas.jpg') center center / cover no-repeat; /* Usamos la imagen como fondo */
+    background: url('../imagenes/medida.jpg') center center / cover no-repeat; /* Usamos la imagen como fondo */
     min-height: 400px; /* Altura mínima para que siempre se vea bien */
     display: flex;
     align-items: center;
