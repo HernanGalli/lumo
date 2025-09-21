@@ -2,108 +2,88 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // ---------------------------------------------------
     // --- CONFIGURACIÓN DEL BANNER (CARRUSEL HERO) ---
-    // Aquí puedes agregar o quitar videos e imágenes fácilmente.
-    // Simplemente sigue el formato.
     // ---------------------------------------------------
     const heroMedia = [
         { 
             type: 'video', 
             src: 'videos/banner-video.mp4', 
-            poster: 'imagenes/banner-video.jpg' // Imagen que se muestra mientras carga el video
+            poster: 'imagenes/lampara-dahlia-gris.jpg'
         },
         { 
             type: 'video', 
             src: 'videos/banner-video3.mp4', 
-            poster: 'imagenes/banner-video.jpg' // Imagen que se muestra mientras carga el video
+            poster: 'imagenes/lampara-dahlia-gris.jpg'
         },
         { 
             type: 'video', 
             src: 'videos/banner-video2.mp4', 
-            poster: 'imagenes/banner-video.jpg' // Imagen que se muestra mientras carga el video
+            poster: 'imagenes/lampara-dahlia-gris.jpg'
         }
- //       { 
- //           type: 'image', 
- //           src: 'imagenes/banner-video.jpg' 
- //       },
- //       { 
- //           type: 'image', 
- //           src: 'imagenes/banner-video.jpg' 
- //       }
+  //      { 
+   //         type: 'image', 
+    //        src: 'imagenes/lampara-dahlia-naranja.jpg' 
+      //  },
+       // { 
+        //    type: 'image', 
+         //   src: 'imagenes/percheros-cactus.jpg' 
+        //}
     ];
-    // Duración de cada diapositiva en milisegundos (ej: 7000 = 7 segundos)
     const slideDuration = 3000;
-
 
     // --- LÓGICA DEL CARRUSEL DEL BANNER ---
     const heroSlider = document.getElementById('hero-slider');
     let currentSlideIndex = 0;
 
     function initHeroSlider() {
-        if (!heroSlider) return;
+        // Verificación: Solo se ejecuta si el contenedor del banner existe.
+        if (!heroSlider || heroMedia.length === 0) return;
 
-        // Crea todos los slides y los añade al contenedor
         heroMedia.forEach((media, index) => {
             const slide = document.createElement('div');
             slide.classList.add('hero__slide');
-            
-            if (media.type === 'video') {
-                slide.innerHTML = `
-                    <video playsinline autoplay muted loop poster="${media.poster || ''}">
-                        <source src="${media.src}" type="video/mp4">
-                    </video>`;
-            } else {
+            if (media.type === 'video' && media.src) {
+                slide.innerHTML = `<video playsinline autoplay muted loop poster="${media.poster || ''}"><source src="${media.src}" type="video/mp4"></video>`;
+            } else if (media.type === 'image' && media.src) {
                 slide.innerHTML = `<img src="${media.src}" alt="Imagen de fondo del banner">`;
             }
-            
             if (index === 0) {
-                slide.classList.add('active'); // Muestra el primer slide
+                slide.classList.add('active');
             }
             heroSlider.appendChild(slide);
         });
 
-        // Inicia el intervalo para cambiar de slide
-        setInterval(changeSlide, slideDuration);
+        if (heroMedia.length > 1) {
+            setInterval(changeSlide, slideDuration);
+        }
     }
 
     function changeSlide() {
         const slides = heroSlider.querySelectorAll('.hero__slide');
         if (slides.length <= 1) return;
-
-        // Desactiva el slide actual
         slides[currentSlideIndex].classList.remove('active');
-
-        // Calcula el índice del siguiente slide
         currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-
-        // Activa el siguiente slide
         const nextSlide = slides[currentSlideIndex];
         nextSlide.classList.add('active');
-
-        // Si el nuevo slide es un video, asegúrate de que se reproduzca
         const video = nextSlide.querySelector('video');
         if (video) {
-            video.currentTime = 0; // Reinicia el video
-            video.play();
+            video.currentTime = 0;
+            video.play().catch(error => console.log("Navegador impidió reproducción automática."));
         }
     }
 
+    // --- EL RESTO DEL CÓDIGO CON VERIFICACIONES AÑADIDAS ---
 
-    // --- EL RESTO DEL CÓDIGO PERMANECE IGUAL ---
-
-    // --- CONFIGURACIÓN GENERAL Y ELEMENTOS DEL DOM ---
     const productosGrid = document.getElementById('productos-grid');
     const filtrosCategoria = document.getElementById('filtros-categoria');
     const currentYearSpan = document.getElementById('current-year');
     const navMenu = document.getElementById('nav-menu');
     const navToggle = document.getElementById('nav-toggle');
 
-    // --- ACTUALIZAR AÑO DEL FOOTER ---
     if (currentYearSpan) {
         currentYearSpan.textContent = new Date().getFullYear();
     }
 
-    // --- LÓGICA DE NAVEGACIÓN MÓVIL (MENÚ HAMBURGUESA) ---
-    if (navToggle) {
+    if (navToggle && navMenu) {
         navToggle.addEventListener('click', () => {
             navMenu.classList.toggle('show-menu');
             navToggle.classList.toggle('active');
@@ -115,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
 
-    // --- LÓGICA DEL CATÁLOGO ---
     function mostrarProductos(productos) {
         if (!productosGrid) return;
         productosGrid.innerHTML = '';
@@ -132,62 +111,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 const precioNormalF = producto.precioOriginal.toLocaleString('es-UY', formatoMoneda);
                 precioHTML = `<span class="precio--normal">${precioNormalF}</span>`;
             }
-            card.innerHTML = `
-                <div class="producto-card__imagen-cont">
-                    <img src="${producto.imagen}" alt="${producto.nombre}" class="producto-card__imagen">
-                    ${producto.oferta ? '<span class="producto-card__oferta">Oferta</span>' : ''}
-                </div>
-                <div class="producto-card__info">
-                    <span class="producto-card__categoria">${producto.categoria}</span>
-                    <h3 class="producto-card__nombre">${producto.nombre}</h3>
-                    <p class="producto-card__descripcion">${producto.descripcion}</p>
-                    <div class="producto-card__footer">
-                        <div class="producto-card__precio">${precioHTML}</div>
-                        <button class="boton producto-card__boton" data-nombre="${producto.nombre}">Me interesa</button>
-                    </div>
-                </div>`;
+            card.innerHTML = `<div class="producto-card__imagen-cont"><img src="${producto.imagen}" alt="${producto.nombre}" class="producto-card__imagen">${producto.oferta ? '<span class="producto-card__oferta">Oferta</span>' : ''}</div><div class="producto-card__info"><span class="producto-card__categoria">${producto.categoria}</span><h3 class="producto-card__nombre">${producto.nombre}</h3><p class="producto-card__descripcion">${producto.descripcion}</p><div class="producto-card__footer"><div class="producto-card__precio">${precioHTML}</div><button class="boton producto-card__boton" data-nombre="${producto.nombre}">Me interesa</button></div></div>`;
             productosGrid.appendChild(card);
         });
     }
-    if (filtrosCategoria) {
+
+    if (filtrosCategoria && typeof catalogoLUMO !== 'undefined') {
         filtrosCategoria.addEventListener('click', (e) => {
             if (e.target.classList.contains('filtro')) {
                 document.querySelector('.filtro.activo').classList.remove('activo');
                 e.target.classList.add('activo');
                 const categoria = e.target.dataset.categoria;
-                const productosFiltrados = categoria === 'todos' ? catalogoLUMO : catalogoLUMO.filter(p => p.categoria === categoria);
+                const productosFiltrados = (categoria === 'todos') ? catalogoLUMO : catalogoLUMO.filter(p => p.categoria === categoria);
                 mostrarProductos(productosFiltrados);
             }
         });
     }
+
     if (typeof catalogoLUMO !== 'undefined') {
         mostrarProductos(catalogoLUMO);
     }
     
-    // --- LÓGICA DE MODALES ---
+    // --- LÓGICA DE MODALES (CORREGIDA Y ROBUSTA) ---
     const allModals = document.querySelectorAll('.modal');
+    
+    // Evento para el botón "Me interesa" de los productos
     if (productosGrid) {
         productosGrid.addEventListener('click', (e) => {
             if (e.target.classList.contains('producto-card__boton')) {
                 const nombreProducto = e.target.dataset.nombre;
                 const modalProducto = document.getElementById('modal-producto');
-                document.getElementById('modal-producto-nombre').textContent = nombreProducto;
-                document.getElementById('producto-oculto').value = nombreProducto;
-                modalProducto.classList.add('visible');
+                if (modalProducto) { // Solo intenta abrir el modal si existe
+                    modalProducto.querySelector('#modal-producto-nombre').textContent = nombreProducto;
+                    modalProducto.querySelector('#producto-oculto').value = nombreProducto;
+                    modalProducto.classList.add('visible');
+                }
             }
         });
     }
+
+    // Evento para el botón "Cotiza tu proyecto"
     const botonContacto = document.getElementById('boton-contacto-general');
     if (botonContacto) {
         botonContacto.addEventListener('click', () => {
-            document.getElementById('modal-contacto').classList.add('visible');
+            const modalContacto = document.getElementById('modal-contacto');
+            if(modalContacto) modalContacto.classList.add('visible'); // Solo intenta abrir el modal si existe
         });
     }
+
+    // Eventos para cerrar CUALQUIER modal
     allModals.forEach(modal => {
         const closeButton = modal.querySelector('.modal__cerrar');
-        closeButton.addEventListener('click', () => modal.classList.remove('visible'));
+        if (closeButton) {
+            closeButton.addEventListener('click', () => modal.classList.remove('visible'));
+        }
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('visible');
+            if (e.target === modal) {
+                modal.classList.remove('visible');
+            }
         });
     });
 
@@ -229,6 +210,5 @@ document.addEventListener('DOMContentLoaded', () => {
     handleFormSubmit(document.getElementById('form-contacto'));
 
     // --- INICIALIZAR FUNCIONES AL CARGAR LA PÁGINA ---
-    initHeroSlider(); // Inicia el carrusel del banner
-
+    initHeroSlider();
 });
