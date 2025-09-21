@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMO - Diseño e Impresión 3D</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header class="header">
+        <nav class="nav contenedor">
+            <a href="#">
+                <img src="imagenes/logo-lumo.png" alt="Logo LUMO" class="nav__logo">
+            </a>
+            <div class="nav__menu" id="nav-menu">
+                <ul class="nav__links">
+                    <li class="nav__item"><a href="#catalogo" class="nav__link">Catálogo</a></li>
+                    <li class="nav__item"><a href="#a-medida" class="nav__link">A Medida</a></li>
+                    <li class="nav__item"><a href="#contacto" class="nav__link">Contacto</a></li>
+                </ul>
+            </div>
+            <div class="nav__toggle" id="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero__slider-container" id="hero-slider"></div>
+
+            <div class="hero__contenedor contenedor">
+                <h1 class="hero__titulo">Diseño que ilumina. <br>Ideas que toman forma.</h1>
+                <p class="hero__parrafo">Piezas únicas de impresión 3D para tu hogar y negocio.</p>
+                <a href="#catalogo" class="boton">Explorar Diseños</a>
+            </div>
+        </section>
+
+
+        <section id="catalogo" class="catalogo contenedor">
+            <h2 class="titulo-seccion">Nuestro Catálogo</h2>
+            <div id="filtros-categoria" class="filtros">
+                <button class="filtro activo" data-categoria="todos">Todos</button>
+                <button class="filtro" data-categoria="lamparas">Lámparas</button>
+                <button class="filtro" data-categoria="hogar">Hogar</button>
+                <button class="filtro" data-categoria="pasteleria">Pastelería</button>
+            </div>
+            <div id="productos-grid" class="productos-grid">
+                </div>
+        </section>
+
+        <section id="a-medida" class="a-medida">
+            <div class="a-medida__contenedor contenedor">
+                <h2 class="titulo-seccion titulo-seccion--blanco">¿Tienes una idea? <br>La hacemos realidad.</h2>
+                <p class="a-medida__parrafo">Desde piezas únicas para tu negocio hasta ese objeto que siempre imaginaste. Cuéntanos tu proyecto y lo creamos juntos.</p>
+                <button id="boton-contacto-general" class="boton boton--blanco">Hablemos de tu proyecto</button>
+            </div>
+        </section>
+    </main>
+
+    <footer id="contacto" class="footer">
+        <div class="footer__contenedor contenedor">
+            <img src="imagenes/logo-lumo.png" alt="Logo LUMO" class="footer__logo">
+            <p class="footer__texto">© <span id="current-year"></span> LUMO. Diseño e Impresión 3D.</p>
+            <p class="footer__contacto">Montevideo, Uruguay</p>
+        </div>
+    </footer>
+
+    <div id="modal-producto" class="modal">
+        <div class="modal__contenido">
+            <button class="modal__cerrar" data-modal="modal-producto">&times;</button>
+            <h3 class="modal__titulo">Solicitar Compra</h3>
+            <p class="modal__producto-nombre" id="modal-producto-nombre"></p>
+            <p class="modal__texto">Déjanos tus datos y te contactaremos para coordinar el pago y la entrega.</p>
+            <form class="modal__form" id="form-producto">
+                <input type="hidden" name="formType" value="producto">
+                <input type="hidden" name="producto" id="producto-oculto">
+                <input type="text" name="nombre" placeholder="Tu nombre completo" required>
+                <input type="email" name="email" placeholder="Tu correo electrónico" required>
+                <input type="tel" name="telefono" placeholder="Tu teléfono (opcional)">
+                <button type="submit" class="boton">Enviar Solicitud</button>
+                <p class="modal__mensaje-estado"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-contacto" class="modal">
+        <div class="modal__contenido">
+            <button class="modal__cerrar" data-modal="modal-contacto">&times;</button>
+            <h3 class="modal__titulo">Contáctanos</h3>
+            <p class="modal__texto">Cuéntanos sobre tu proyecto o consulta y te responderemos a la brevedad.</p>
+            <form class="modal__form" id="form-contacto">
+                <input type="hidden" name="formType" value="contacto">
+                <input type="text" name="nombre" placeholder="Tu nombre" required>
+                <input type="email" name="email" placeholder="Tu correo electrónico" required>
+                <textarea name="mensaje" placeholder="Tu mensaje..." rows="4" required></textarea>
+                <button type="submit" class="boton">Enviar Mensaje</button>
+                <p class="modal__mensaje-estado"></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/productos.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
