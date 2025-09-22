@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- LÓGICA DE ENVÍO DE FORMULARIOS ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzE1vBjUfwxrqvpKjqMXEGgSwxz2mr-6G4gACG4Smh4IJEtKsaJsxN3eb_PAnoR5XaJ/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7aD6Pr8Oi1Tp_iQQrbz7LYVeUtXz_90YeD6FnpgEsw2g7EJ6IdG33eOywf31SI4We/exec"; 
     const handleFormSubmit = (formElement) => {
         if (!formElement) return;
         formElement.addEventListener('submit', e => {
