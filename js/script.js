@@ -2,12 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- CONFIGURACIÓN Y CONSTANTES ---
     const heroMedia = [
-        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/portada.jpg'},
-        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/portada.jpg'},
-        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/portada.jpg'}
+        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg'},
+        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg'},
+        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg'}
     ];
     const slideDuration = 3000;
-    const PRODUCTOS_A_MOSTRAR_INICIALMENTE = 4;
+    const PRODUCTOS_A_MOSTRAR_INICIALMENTE = 3; // Mostrar 3 productos completos
 
     // --- ELEMENTOS DEL DOM ---
     const catalogoSection = document.getElementById('catalogo');
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LÓGICA DEL CATÁLOGO Y "VER MÁS" ---
-    function renderizarProductos(productos) {
+    function mostrarProductos(productos) {
         if (!productosGrid) return;
         productosGrid.innerHTML = '';
         productos.forEach(producto => {
@@ -101,25 +101,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function actualizarVista(esVistaInicial = false) {
-        const productosParaRenderizar = esVistaInicial 
-            ? productosFiltradosActuales.slice(0, PRODUCTOS_A_MOSTRAR_INICIALMENTE) 
-            : productosFiltradosActuales;
-        
-        renderizarProductos(productosParaRenderizar);
+    function gestionarVistaCatalogo() {
+        if (!catalogoSection || !verMasContenedor || !productosGrid) return;
 
-        if (verMasContenedor) {
-            if (esVistaInicial && productosFiltradosActuales.length > PRODUCTOS_A_MOSTRAR_INICIALMENTE) {
-                verMasContenedor.classList.remove('hidden');
-            } else {
-                verMasContenedor.classList.add('hidden');
-            }
+        const productosVisibles = productosFiltradosActuales.length;
+        const primerProducto = productosGrid.querySelector('.producto-card');
+
+        // Si hay más productos que el límite inicial y tenemos al menos un producto para medir
+        if (productosVisibles > PRODUCTOS_A_MOSTRAR_INICIALMENTE && primerProducto) {
+            catalogoSection.classList.add('catalogo--collapsed');
+            verMasContenedor.classList.remove('hidden');
+            
+            const cardHeight = primerProducto.offsetHeight;
+            const gridGap = parseInt(getComputedStyle(productosGrid).gap) || 30; // 30px es 3rem
+            
+            // Regla: 3 productos completos y la mitad del cuarto (en vista de 1 columna)
+            const alturaDeseada = (cardHeight * 3) + (gridGap * 2) + (cardHeight / 2) + gridGap;
+            productosGrid.style.maxHeight = `${alturaDeseada}px`;
+        } else {
+            // Si hay menos productos, nos aseguramos de que se vea todo normal
+            catalogoSection.classList.remove('catalogo--collapsed');
+            verMasContenedor.classList.add('hidden');
+            productosGrid.style.maxHeight = null;
         }
     }
 
     if (verMasBtn) {
         verMasBtn.addEventListener('click', () => {
-            actualizarVista(false); // Muestra todos los productos
+            // --- CORRECCIÓN CLAVE AQUÍ ---
+            // Al hacer clic, quitamos la clase que aplica el efecto y la altura máxima.
+            if (catalogoSection) catalogoSection.classList.remove('catalogo--collapsed');
+            if (verMasContenedor) verMasContenedor.classList.add('hidden');
+            if (productosGrid) productosGrid.style.maxHeight = null; // Esto permite que el contenedor crezca a su altura total
         });
     }
 
@@ -130,11 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.target.classList.add('activo');
                 const categoria = e.target.dataset.categoria;
                 productosFiltradosActuales = (categoria === 'todos') ? catalogoLUMO : catalogoLUMO.filter(p => p.categoria === categoria);
-                
-                // --- CAMBIO CLAVE AQUÍ ---
-                // Le decimos a la función que NO es la vista inicial,
-                // por lo tanto, debe mostrar TODOS los productos del filtro.
-                actualizarVista(false); 
+                mostrarProductos(productosFiltradosActuales);
+                // Esperamos un instante para que el navegador dibuje los productos antes de medir su altura
+                setTimeout(gestionarVistaCatalogo, 50); 
             }
         });
     }
@@ -166,14 +177,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
     function abrirModalContacto() {
         const modalContacto = document.getElementById('modal-contacto');
         if(modalContacto) modalContacto.classList.add('visible');
     }
     if (botonContactoHero) botonContactoHero.addEventListener('click', abrirModalContacto);
     if (botonContactoGeneral) botonContactoGeneral.addEventListener('click', abrirModalContacto);
-    
     document.querySelectorAll('.modal').forEach(modal => {
         const closeButton = modal.querySelector('.modal__cerrar');
         if (closeButton) closeButton.addEventListener('click', () => modal.classList.remove('visible'));
@@ -222,6 +231,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INICIALIZACIÓN DE LA PÁGINA ---
     initHeroSlider();
     if (typeof catalogoLUMO !== 'undefined') {
-        actualizarVista(true); // Carga la vista inicial del catálogo (solo 4 productos)
+        mostrarProductos(productosFiltradosActuales);
+        setTimeout(gestionarVistaCatalogo, 100); 
     }
+    window.addEventListener('resize', gestionarVistaCatalogo);
 });
