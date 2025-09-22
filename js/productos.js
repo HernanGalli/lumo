@@ -24,6 +24,19 @@ const catalogoLUMO = [
       precioOriginal: 990.00
     },
     {
+        // --- EJEMPLO CON MÚLTIPLES IMÁGENES ---
+        imagenes: [
+            "imagenes/cierre0.jpg",
+            "imagenes/cierre.jpg", // (foto de ejemplo)
+        ],
+        nombre: "Set de clips para cerrar bolsas",
+        categoria: "hogar",
+        descripcion: "Prácticos clips en forma de hoja son perfectos para mantener tus bolsas cerradas y tus alimentos frescos. Incluye una maceta para guardarlos y que decoren tu espacio como una pequeña planta.",
+        oferta: true,
+        precioOriginal: 220.00,
+        precioOferta: 190.00
+    },
+    {
       imagenes: ["imagenes/moldes-galletas.jpg"], // <--- Cambio de formato
       nombre: "Moldes para Galletas",
       categoria: "pasteleria",
@@ -47,18 +60,5 @@ const catalogoLUMO = [
         descripcion: "Su textura vertical y base de color vibrante la convierten en una pieza de arte única. Diseño escultural de 25 cm.",
         oferta: false,
         precioOriginal: 1190.00
-    },
-    {
-        // --- EJEMPLO CON MÚLTIPLES IMÁGENES ---
-        imagenes: [
-            "imagenes/cierre0.jpg",
-            "imagenes/cierre.jpg", // (foto de ejemplo)
-        ],
-        nombre: "Set de clips para cerrar bolsas",
-        categoria: "hogar",
-        descripcion: "Prácticos clips en forma de hoja son perfectos para mantener tus bolsas cerradas y tus alimentos frescos. Incluye una maceta para guardarlos y que decoren tu espacio como una pequeña planta.",
-        oferta: true,
-        precioOriginal: 220.00,
-        precioOferta: 190.00
     }
 ];

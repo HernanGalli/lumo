@@ -38,11 +38,14 @@
             <div class="hero__contenedor contenedor">
                 <h1 class="hero__titulo">Diseño que ilumina. <br>Ideas que toman forma.</h1>
                 <p class="hero__parrafo">Piezas únicas de impresión 3D para tu hogar y negocio.</p>
-                <a href="#catalogo" class="boton">Explorar Diseños</a>
+                <div class="hero__botones">
+                    <a href="#catalogo" class="boton">Explorar Diseños</a>
+                    <button class="boton boton--outline" id="boton-contacto-hero">Cotiza tu Proyecto</button>
+                </div>
             </div>
         </section>
 
-        <section id="catalogo" class="catalogo contenedor">
+        <section id="catalogo" class="catalogo contenedor catalogo--collapsed">
             <h2 class="titulo-seccion">Nuestro Catálogo</h2>
             <div id="filtros-categoria" class="filtros">
                 <button class="filtro activo" data-categoria="todos">Todos</button>
@@ -50,7 +53,13 @@
                 <button class="filtro" data-categoria="hogar">Hogar</button>
                 <button class="filtro" data-categoria="pasteleria">Pastelería</button>
             </div>
-            <div id="productos-grid" class="productos-grid"></div>
+            
+            <div class="catalogo__contenido">
+                <div id="productos-grid" class="productos-grid"></div>
+                <div class="ver-mas__contenedor">
+                    <button id="ver-mas-btn" class="boton">Ver más</button>
+                </div>
+            </div>
         </section>
 
         <section id="a-medida" class="a-medida">
