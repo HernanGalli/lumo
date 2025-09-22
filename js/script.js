@@ -2,9 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- CONFIGURACIÓN Y CONSTANTES ---
     const heroMedia = [
-        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg'},
-        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg'},
-        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg'}
+        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/portada.jpg'},
+        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/portada.jpg'},
+        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/portada.jpg'}
     ];
     const slideDuration = 3000;
     const PRODUCTOS_A_MOSTRAR_INICIALMENTE = 3; // Mostrar 3 productos completos
@@ -15,13 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const productosGrid = document.getElementById('productos-grid');
     const filtrosCategoria = document.getElementById('filtros-categoria');
     const verMasBtn = document.getElementById('ver-mas-btn');
-    const verMasContenedor = document.querySelector('.ver-mas__contenedor');
+    const verMenosBtn = document.getElementById('ver-menos-btn');
     const currentYearSpan = document.getElementById('current-year');
     const navMenu = document.getElementById('nav-menu');
     const navToggle = document.getElementById('nav-toggle');
     const botonContactoHero = document.getElementById('boton-contacto-hero');
     const botonContactoGeneral = document.getElementById('boton-contacto-general');
 
+    // --- ESTADO DE LA APLICACIÓN ---
+    let isCatalogoExpanded = false;
     let productosFiltradosActuales = (typeof catalogoLUMO !== 'undefined') ? [...catalogoLUMO] : [];
 
     // --- LÓGICA DEL CARRUSEL DEL BANNER ---
@@ -70,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
 
-    // --- LÓGICA DEL CATÁLOGO Y "VER MÁS" ---
+    // --- LÓGICA DEL CATÁLOGO ---
     function mostrarProductos(productos) {
         if (!productosGrid) return;
         productosGrid.innerHTML = '';
@@ -102,37 +104,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function gestionarVistaCatalogo() {
-        if (!catalogoSection || !verMasContenedor || !productosGrid) return;
+        if (!catalogoSection || !productosGrid) return;
 
-        const productosVisibles = productosFiltradosActuales.length;
-        const primerProducto = productosGrid.querySelector('.producto-card');
-
-        // Si hay más productos que el límite inicial y tenemos al menos un producto para medir
-        if (productosVisibles > PRODUCTOS_A_MOSTRAR_INICIALMENTE && primerProducto) {
-            catalogoSection.classList.add('catalogo--collapsed');
-            verMasContenedor.classList.remove('hidden');
-            
-            const cardHeight = primerProducto.offsetHeight;
-            const gridGap = parseInt(getComputedStyle(productosGrid).gap) || 30; // 30px es 3rem
-            
-            // Regla: 3 productos completos y la mitad del cuarto (en vista de 1 columna)
-            const alturaDeseada = (cardHeight * 3) + (gridGap * 2) + (cardHeight / 2) + gridGap;
-            productosGrid.style.maxHeight = `${alturaDeseada}px`;
-        } else {
-            // Si hay menos productos, nos aseguramos de que se vea todo normal
+        if (isCatalogoExpanded) {
             catalogoSection.classList.remove('catalogo--collapsed');
-            verMasContenedor.classList.add('hidden');
             productosGrid.style.maxHeight = null;
+        } else {
+            const productosVisibles = productosFiltradosActuales.length;
+            const primerProducto = productosGrid.querySelector('.producto-card');
+
+            if (productosVisibles > PRODUCTOS_A_MOSTRAR_INICIALMENTE && primerProducto) {
+                catalogoSection.classList.add('catalogo--collapsed');
+                const cardHeight = primerProducto.offsetHeight;
+                const gridGap = parseInt(getComputedStyle(productosGrid).gap) || 30;
+                const alturaDeseada = (cardHeight * 3) + (gridGap * 2) + (cardHeight / 2) + gridGap;
+                productosGrid.style.maxHeight = `${alturaDeseada}px`;
+            } else {
+                catalogoSection.classList.remove('catalogo--collapsed');
+                productosGrid.style.maxHeight = null;
+            }
+        }
+        actualizarBotonesVerMasMenos();
+    }
+
+    function actualizarBotonesVerMasMenos() {
+        if (!verMasBtn || !verMenosBtn) return;
+        const necesitaPaginacion = productosFiltradosActuales.length > PRODUCTOS_A_MOSTRAR_INICIALMENTE;
+
+        if (!necesitaPaginacion) {
+            verMasBtn.classList.add('hidden');
+            verMenosBtn.classList.add('hidden');
+            return;
+        }
+
+        if (isCatalogoExpanded) {
+            verMasBtn.classList.add('hidden');
+            verMenosBtn.classList.remove('hidden');
+        } else {
+            verMasBtn.classList.remove('hidden');
+            verMenosBtn.classList.add('hidden');
         }
     }
 
     if (verMasBtn) {
         verMasBtn.addEventListener('click', () => {
-            // --- CORRECCIÓN CLAVE AQUÍ ---
-            // Al hacer clic, quitamos la clase que aplica el efecto y la altura máxima.
-            if (catalogoSection) catalogoSection.classList.remove('catalogo--collapsed');
-            if (verMasContenedor) verMasContenedor.classList.add('hidden');
-            if (productosGrid) productosGrid.style.maxHeight = null; // Esto permite que el contenedor crezca a su altura total
+            isCatalogoExpanded = true;
+            gestionarVistaCatalogo();
+        });
+    }
+
+    if (verMenosBtn) {
+        verMenosBtn.addEventListener('click', () => {
+            isCatalogoExpanded = false;
+            gestionarVistaCatalogo();
+            catalogoSection.scrollIntoView({ behavior: 'smooth' });
         });
     }
 
@@ -143,8 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.target.classList.add('activo');
                 const categoria = e.target.dataset.categoria;
                 productosFiltradosActuales = (categoria === 'todos') ? catalogoLUMO : catalogoLUMO.filter(p => p.categoria === categoria);
+                isCatalogoExpanded = false;
                 mostrarProductos(productosFiltradosActuales);
-                // Esperamos un instante para que el navegador dibuje los productos antes de medir su altura
                 setTimeout(gestionarVistaCatalogo, 50); 
             }
         });
@@ -234,5 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
         mostrarProductos(productosFiltradosActuales);
         setTimeout(gestionarVistaCatalogo, 100); 
     }
-    window.addEventListener('resize', gestionarVistaCatalogo);
+    
+    window.addEventListener('resize', () => {
+        if (!isCatalogoExpanded) {
+            gestionarVistaCatalogo();
+        }
+    });
 });
