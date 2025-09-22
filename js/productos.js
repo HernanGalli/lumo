@@ -55,7 +55,7 @@ const catalogoLUMO = [
             "imagenes/cierre.jpg", // (foto de ejemplo)
         ],
         nombre: "Set de clips para cerrar bolsas",
-        categoria: "lamparas",
+        categoria: "hogar",
         descripcion: "Prácticos clips en forma de hoja son perfectos para mantener tus bolsas cerradas y tus alimentos frescos. Incluye una maceta para guardarlos y que decoren tu espacio como una pequeña planta.",
         oferta: true,
         precioOriginal: 220.00,
