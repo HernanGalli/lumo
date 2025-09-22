@@ -4,9 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TU CONFIGURACIÓN DEL BANNER (SE MANTIENE) ---
     // ---------------------------------------------------
     const heroMedia = [
-        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg' },
-        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg' },
-        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg' }
+        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/portada.jpg' },
+        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/portada.jpg' },
+        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/portada.jpg' }
     ];
     const slideDuration = 3000;
 
