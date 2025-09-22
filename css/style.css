@@ -71,56 +71,23 @@ body { font-family: var(--fuente-principal); background-color: var(--color-fondo
 .precio--original { font-size: 1.8rem; font-weight: 300; color: var(--color-texto-claro); text-decoration: line-through; }
 .precio--oferta { font-size: 2.2rem; font-weight: 600; color: var(--color-rojo); }
 
-/* ======== SECCIÓN A MEDIDA (NUEVO DISEÑO DE BANNER) ======== */
-.a-medida {
-    position: relative;
-    padding: 8rem 0;
-    text-align: center;
-    color: white;
-    background: url('../imagenes/medida.jpg') center center / cover no-repeat; /* Usamos la imagen como fondo */
-    min-height: 400px; /* Altura mínima para que siempre se vea bien */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-/* Overlay oscuro para que el texto se lea bien */
-.a-medida::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.55); /* Oscurece la imagen de fondo */
-    z-index: 1;
-}
-.a-medida__contenedor { /* Este contenedor ahora es para el texto sobre la imagen */
-    position: relative;
-    z-index: 2;
-    max-width: 800px; /* Limita el ancho del contenido para mejor lectura */
-}
-.a-medida__titulo {
-    font-size: 3.2rem; /* Más grande y llamativo */
-    font-weight: 600;
-    margin-bottom: 2rem;
-    line-height: 1.2;
-    color: white; /* Asegura el color blanco */
-}
-.a-medida__parrafo {
-    font-size: 1.8rem;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 3rem;
-    max-width: 600px; /* Limita el ancho para mejor legibilidad */
-    margin-left: auto;
-    margin-right: auto;
-}
-.a-medida .boton--blanco {
-    padding: 1.5rem 4rem; /* Botón un poco más grande */
-    font-size: 1.8rem;
-    width: auto; /* Para que no ocupe todo el ancho en mobile */
-    max-width: 300px; /* Ancho máximo para el botón */
-}
+/* --- ESTILOS NUEVOS PARA LA GALERÍA DE LA TARJETA --- */
+.card-gallery { width: 100%; height: 100%; position: relative; }
+.card-gallery__image { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; }
+.card-gallery__image.active { display: block; }
+.card-gallery__nav { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.4); color: white; border: none; cursor: pointer; padding: 0.8rem; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; z-index: 10; }
+.producto-card__imagen-cont:hover .card-gallery__nav { opacity: 1; }
+.card-gallery__nav--prev { left: 1rem; }
+.card-gallery__nav--next { right: 1rem; }
 
+
+/* ======== SECCIÓN A MEDIDA (NUEVO DISEÑO DE BANNER) ======== */
+.a-medida { position: relative; padding: 8rem 0; text-align: center; color: white; background: url('../imagenes/medida.jpg') center center / cover no-repeat; min-height: 400px; display: flex; align-items: center; justify-content: center; }
+.a-medida::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.55); z-index: 1; }
+.a-medida__contenedor { position: relative; z-index: 2; max-width: 800px; }
+.a-medida__titulo { font-size: 3.2rem; font-weight: 600; margin-bottom: 2rem; line-height: 1.2; color: white; }
+.a-medida__parrafo { font-size: 1.8rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+.a-medida .boton--blanco { padding: 1.5rem 4rem; font-size: 1.8rem; width: auto; max-width: 300px; }
 
 /* ======== FOOTER ======== */
 .footer { background-color: var(--color-fondo-secundario); padding: 4rem 0; text-align: center; }
@@ -154,19 +121,11 @@ body { font-family: var(--fuente-principal); background-color: var(--color-fondo
     .nav__links { flex-direction: row; gap: 3rem; }
     .nav__link { font-size: 1.6rem; }
     .boton { width: auto; }
-
-    /* Adaptación para A Medida en tablet/desktop */
-    .a-medida {
-        min-height: 450px; /* Un poco más alto en pantallas grandes */
-    }
-    .a-medida__titulo {
-        font-size: 4.5rem; /* Título aún más grande */
-    }
+    .a-medida { min-height: 450px; }
+    .a-medida__titulo { font-size: 4.5rem; }
 }
 @media (min-width: 1024px) {
     .productos-grid { grid-template-columns: repeat(3, 1fr); }
     .hero { height: 70vh; }
-    .a-medida {
-        min-height: 550px; /* Más alto en monitores grandes */
-    }
+    .a-medida { min-height: 550px; }
 }

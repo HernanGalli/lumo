@@ -1,43 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // ---------------------------------------------------
-    // --- CONFIGURACIÓN DEL BANNER (CARRUSEL HERO) ---
+    // --- TU CONFIGURACIÓN DEL BANNER (SE MANTIENE) ---
     // ---------------------------------------------------
     const heroMedia = [
-        { 
-            type: 'video', 
-            src: 'videos/banner-video.mp4', 
-            poster: 'imagenes/lampara-dahlia-gris.jpg'
-        },
-        { 
-            type: 'video', 
-            src: 'videos/banner-video3.mp4', 
-            poster: 'imagenes/lampara-dahlia-gris.jpg'
-        },
-        { 
-            type: 'video', 
-            src: 'videos/banner-video2.mp4', 
-            poster: 'imagenes/lampara-dahlia-gris.jpg'
-        }
-  //      { 
-   //         type: 'image', 
-    //        src: 'imagenes/lampara-dahlia-naranja.jpg' 
-      //  },
-       // { 
-        //    type: 'image', 
-         //   src: 'imagenes/percheros-cactus.jpg' 
-        //}
+        { type: 'video', src: 'videos/banner-video.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg' },
+        { type: 'video', src: 'videos/banner-video3.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg' },
+        { type: 'video', src: 'videos/banner-video2.mp4', poster: 'imagenes/lampara-dahlia-gris.jpg' }
     ];
     const slideDuration = 3000;
 
-    // --- LÓGICA DEL CARRUSEL DEL BANNER ---
+    // --- LÓGICA DEL CARRUSEL DEL BANNER (SE MANTIENE) ---
     const heroSlider = document.getElementById('hero-slider');
     let currentSlideIndex = 0;
-
     function initHeroSlider() {
-        // Verificación: Solo se ejecuta si el contenedor del banner existe.
         if (!heroSlider || heroMedia.length === 0) return;
-
         heroMedia.forEach((media, index) => {
             const slide = document.createElement('div');
             slide.classList.add('hero__slide');
@@ -46,17 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (media.type === 'image' && media.src) {
                 slide.innerHTML = `<img src="${media.src}" alt="Imagen de fondo del banner">`;
             }
-            if (index === 0) {
-                slide.classList.add('active');
-            }
+            if (index === 0) slide.classList.add('active');
             heroSlider.appendChild(slide);
         });
-
-        if (heroMedia.length > 1) {
-            setInterval(changeSlide, slideDuration);
-        }
+        if (heroMedia.length > 1) setInterval(changeSlide, slideDuration);
     }
-
     function changeSlide() {
         const slides = heroSlider.querySelectorAll('.hero__slide');
         if (slides.length <= 1) return;
@@ -71,17 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- EL RESTO DEL CÓDIGO CON VERIFICACIONES AÑADIDAS ---
-
+    // --- CONFIGURACIÓN GENERAL Y ELEMENTOS DEL DOM ---
     const productosGrid = document.getElementById('productos-grid');
     const filtrosCategoria = document.getElementById('filtros-categoria');
     const currentYearSpan = document.getElementById('current-year');
     const navMenu = document.getElementById('nav-menu');
     const navToggle = document.getElementById('nav-toggle');
 
-    if (currentYearSpan) {
-        currentYearSpan.textContent = new Date().getFullYear();
-    }
+    if (currentYearSpan) currentYearSpan.textContent = new Date().getFullYear();
 
     if (navToggle && navMenu) {
         navToggle.addEventListener('click', () => {
@@ -95,12 +63,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
 
+    // --- LÓGICA DEL CATÁLOGO (ACTUALIZADA PARA GALERÍA) ---
     function mostrarProductos(productos) {
         if (!productosGrid) return;
         productosGrid.innerHTML = '';
         productos.forEach(producto => {
             const card = document.createElement('div');
             card.className = `producto-card categoria-${producto.categoria}`;
+            
+            // Construir la galería de imágenes
+            let imagesHTML = '';
+            // Se usa el nuevo campo "imagenes" (array)
+            const imagenes = producto.imagenes || [producto.imagen]; // Compatible con el formato viejo si aún existe
+            imagenes.forEach((imgSrc, index) => {
+                imagesHTML += `<img src="${imgSrc}" alt="${producto.nombre}" class="card-gallery__image ${index === 0 ? 'active' : ''}">`;
+            });
+
+            // Añadir botones de navegación solo si hay más de una imagen
+            let navButtonsHTML = '';
+            if (imagenes.length > 1) {
+                navButtonsHTML = `
+                    <button class="card-gallery__nav card-gallery__nav--prev" aria-label="Anterior">&#10094;</button>
+                    <button class="card-gallery__nav card-gallery__nav--next" aria-label="Siguiente">&#10095;</button>
+                `;
+            }
+
             let precioHTML = '';
             const formatoMoneda = { style: 'currency', currency: 'UYU' };
             if (producto.oferta && producto.precioOferta) {
@@ -111,7 +98,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const precioNormalF = producto.precioOriginal.toLocaleString('es-UY', formatoMoneda);
                 precioHTML = `<span class="precio--normal">${precioNormalF}</span>`;
             }
-            card.innerHTML = `<div class="producto-card__imagen-cont"><img src="${producto.imagen}" alt="${producto.nombre}" class="producto-card__imagen">${producto.oferta ? '<span class="producto-card__oferta">Oferta</span>' : ''}</div><div class="producto-card__info"><span class="producto-card__categoria">${producto.categoria}</span><h3 class="producto-card__nombre">${producto.nombre}</h3><p class="producto-card__descripcion">${producto.descripcion}</p><div class="producto-card__footer"><div class="producto-card__precio">${precioHTML}</div><button class="boton producto-card__boton" data-nombre="${producto.nombre}">Me interesa</button></div></div>`;
+
+            card.innerHTML = `
+                <div class="producto-card__imagen-cont">
+                    <div class="card-gallery">${imagesHTML}</div>
+                    ${navButtonsHTML}
+                    ${producto.oferta ? '<span class="producto-card__oferta">Oferta</span>' : ''}
+                </div>
+                <div class="producto-card__info">
+                    <span class="producto-card__categoria">${producto.categoria}</span>
+                    <h3 class="producto-card__nombre">${producto.nombre}</h3>
+                    <p class="producto-card__descripcion">${producto.descripcion}</p>
+                    <div class="producto-card__footer">
+                        <div class="producto-card__precio">${precioHTML}</div>
+                        <button class="boton producto-card__boton" data-nombre="${producto.nombre}">Me interesa</button>
+                    </div>
+                </div>`;
             productosGrid.appendChild(card);
         });
     }
@@ -128,20 +130,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (typeof catalogoLUMO !== 'undefined') {
-        mostrarProductos(catalogoLUMO);
-    }
+    if (typeof catalogoLUMO !== 'undefined') mostrarProductos(catalogoLUMO);
     
-    // --- LÓGICA DE MODALES (CORREGIDA Y ROBUSTA) ---
-    const allModals = document.querySelectorAll('.modal');
-    
-    // Evento para el botón "Me interesa" de los productos
+    // --- NUEVA LÓGICA PARA LA GALERÍA DE IMÁGENES EN LAS TARJETAS ---
     if (productosGrid) {
         productosGrid.addEventListener('click', (e) => {
-            if (e.target.classList.contains('producto-card__boton')) {
+            const navButton = e.target.closest('.card-gallery__nav');
+            if (navButton) { // Si se hizo clic en una flecha de la galería
+                const gallery = navButton.closest('.producto-card__imagen-cont').querySelector('.card-gallery');
+                const images = gallery.querySelectorAll('.card-gallery__image');
+                let currentIndex = Array.from(images).findIndex(img => img.classList.contains('active'));
+                
+                images[currentIndex].classList.remove('active');
+
+                if (navButton.classList.contains('card-gallery__nav--next')) {
+                    currentIndex = (currentIndex + 1) % images.length;
+                } else {
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                }
+                
+                images[currentIndex].classList.add('active');
+            } else if (e.target.classList.contains('producto-card__boton')) { // Si se hizo clic en "Me interesa"
                 const nombreProducto = e.target.dataset.nombre;
                 const modalProducto = document.getElementById('modal-producto');
-                if (modalProducto) { // Solo intenta abrir el modal si existe
+                if (modalProducto) {
                     modalProducto.querySelector('#modal-producto-nombre').textContent = nombreProducto;
                     modalProducto.querySelector('#producto-oculto').value = nombreProducto;
                     modalProducto.classList.add('visible');
@@ -150,25 +162,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Evento para el botón "Cotiza tu proyecto"
+    // --- LÓGICA DE MODALES (YA INTEGRADA ARRIBA Y ABAJO) ---
+    const allModals = document.querySelectorAll('.modal');
     const botonContacto = document.getElementById('boton-contacto-general');
     if (botonContacto) {
         botonContacto.addEventListener('click', () => {
             const modalContacto = document.getElementById('modal-contacto');
-            if(modalContacto) modalContacto.classList.add('visible'); // Solo intenta abrir el modal si existe
+            if(modalContacto) modalContacto.classList.add('visible');
         });
     }
-
-    // Eventos para cerrar CUALQUIER modal
     allModals.forEach(modal => {
         const closeButton = modal.querySelector('.modal__cerrar');
-        if (closeButton) {
-            closeButton.addEventListener('click', () => modal.classList.remove('visible'));
-        }
+        if (closeButton) closeButton.addEventListener('click', () => modal.classList.remove('visible'));
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('visible');
-            }
+            if (e.target === modal) modal.classList.remove('visible');
         });
     });
 
@@ -209,6 +216,5 @@ document.addEventListener('DOMContentLoaded', () => {
     handleFormSubmit(document.getElementById('form-producto'));
     handleFormSubmit(document.getElementById('form-contacto'));
 
-    // --- INICIALIZAR FUNCIONES AL CARGAR LA PÁGINA ---
     initHeroSlider();
 });
