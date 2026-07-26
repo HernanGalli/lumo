@@ -16,6 +16,17 @@ export function FadeInSection({
     const node = ref.current;
     if (!node) return;
 
+    // Chequeo síncrono al montar: si la sección ya está a la vista apenas
+    // carga la página (ej. es lo primero del todo, como el catálogo, sin
+    // hero arriba que obligue a scrollear), no depende de que el
+    // IntersectionObserver dispare a tiempo — sin esto, ese contenido
+    // quedaba con opacity:0 hasta que el visitante scrolleaba.
+    const rect = node.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setVisible(true);
+      return;
+    }
+
     // threshold 0 (no un % del área): las secciones envueltas pueden ser muy
     // altas (ej. toda la grilla de productos), así que alcanza con que
     // empiece a asomar por abajo del viewport para disparar el fade-in.
