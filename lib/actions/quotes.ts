@@ -272,6 +272,7 @@ const addItemSchema = z.object({
   tiempoDisenoHoras: z.coerce.number().min(0).max(10_000).optional(),
   margenPct: z.coerce.number().min(0).max(1000).optional(),
   basePriceManual: z.coerce.number().min(0).max(100_000_000).optional(),
+  costoExtrasManual: z.coerce.number().min(0).max(100_000_000).optional(),
   loteQuantity: z.coerce.number().int().min(1).max(1_000_000).optional(),
   supplyIds: z.array(z.string().uuid()).default([]),
   supplyQuantities: z.array(z.coerce.number().int().min(1).max(100_000)).default([]),
@@ -290,6 +291,7 @@ type QuoteItemFields = {
   costo_material: number;
   costo_energia: number;
   costo_mano_obra: number;
+  costo_extras_manual: number;
   costo_total: number;
   base_unit_price: number;
   quantity: number;
@@ -351,6 +353,7 @@ async function buildQuoteItemFields(
       costo_material: 0,
       costo_energia: 0,
       costo_mano_obra: 0,
+      costo_extras_manual: 0,
       costo_total: 0,
       base_unit_price: round2(parsed.basePriceManual),
       quantity: parsed.quantity,
@@ -388,11 +391,15 @@ async function buildQuoteItemFields(
     valorHora: defaultValorHora,
   });
 
-  // Costos Extras (insumos) se suman al costo total además de material,
-  // eléctrico y mano de obra de diseño — ver calculadora-costos-e-insumos.md.
-  const costosExtras = calcCostosExtras(
-    insumosUsados.map((i) => ({ unitCost: i.unitCost, quantity: i.quantity }))
-  );
+  // Costos Extras = insumos elegidos + el campo simple "Costos Extras ($)"
+  // cargado a mano en el ítem (sin necesidad de dar de alta un insumo para
+  // un costo puntual) — ambos se suman al costo total junto con material,
+  // eléctrico y mano de obra de diseño, y sobre ese total se aplica el
+  // margen. Ver calculadora-costos-e-insumos.md.
+  const costoExtrasManual = round2(parsed.costoExtrasManual ?? 0);
+  const costosExtras =
+    calcCostosExtras(insumosUsados.map((i) => ({ unitCost: i.unitCost, quantity: i.quantity }))) +
+    costoExtrasManual;
   const costoTotal =
     breakdown.costoManoObra + calcCostoTotal(breakdown.costoMaterial, breakdown.costoEnergia, costosExtras);
 
@@ -417,6 +424,7 @@ async function buildQuoteItemFields(
     costo_material: round2(breakdown.costoMaterial),
     costo_energia: round2(breakdown.costoEnergia),
     costo_mano_obra: round2(breakdown.costoManoObra),
+    costo_extras_manual: costoExtrasManual,
     costo_total: round2(costoTotal),
     base_unit_price: round2(basePrice),
     quantity: parsed.quantity,
@@ -440,6 +448,7 @@ function parseItemForm(formData: FormData) {
     tiempoDisenoHoras: formData.get("tiempoDisenoHoras") || undefined,
     margenPct: formData.get("margenPct") || undefined,
     basePriceManual: formData.get("basePriceManual") || undefined,
+    costoExtrasManual: formData.get("costoExtrasManual") || undefined,
     loteQuantity: formData.get("loteQuantity") || undefined,
     supplyIds: formData.getAll("supplyIds"),
     supplyQuantities: formData.getAll("supplyQuantities"),
@@ -455,6 +464,16 @@ async function syncItemCostsAndSupplies(
   fields: QuoteItemFields & { margenPctUsado: number; gananciaNeta: number },
   insumosUsados: InsumoUsadoConNombre[]
 ) {
+  // Se regeneran los montos siempre (pueden haber cambiado), pero el
+  // show_in_pdf que el admin ya haya tildado a mano para cada concepto se
+  // preserva — si no, cada vez que se edita el ítem (ej. cambiar la
+  // cantidad) se perdían los checks ya marcados.
+  const { data: existingCosts } = await supabase
+    .from("quote_item_costs")
+    .select("concept, show_in_pdf")
+    .eq("quote_item_id", itemId);
+  const previousVisibility = new Map((existingCosts ?? []).map((c) => [c.concept, c.show_in_pdf]));
+
   await supabase.from("calc_supplies_used").delete().eq("quote_item_id", itemId);
   if (insumosUsados.length > 0) {
     await supabase.from("calc_supplies_used").insert(
@@ -472,27 +491,30 @@ async function syncItemCostsAndSupplies(
   const rows: { concept: string; amount: number; show_in_pdf: boolean; sort_order: number }[] = [];
   let sortOrder = 0;
 
+  function pushRow(concept: string, amount: number, defaultShow: boolean) {
+    rows.push({
+      concept,
+      amount,
+      show_in_pdf: previousVisibility.get(concept) ?? defaultShow,
+      sort_order: sortOrder++,
+    });
+  }
+
   if (fields.material_id) {
-    rows.push({ concept: "Costo Material", amount: fields.costo_material, show_in_pdf: false, sort_order: sortOrder++ });
-    rows.push({ concept: "Costo Eléctrico", amount: fields.costo_energia, show_in_pdf: false, sort_order: sortOrder++ });
+    pushRow("Costo Material", fields.costo_material, false);
+    pushRow("Costo Eléctrico", fields.costo_energia, false);
     if (fields.costo_mano_obra > 0) {
-      rows.push({
-        concept: "Mano de obra (diseño)",
-        amount: fields.costo_mano_obra,
-        show_in_pdf: false,
-        sort_order: sortOrder++,
-      });
+      pushRow("Mano de obra (diseño)", fields.costo_mano_obra, false);
+    }
+    if (fields.costo_extras_manual > 0) {
+      pushRow("Costos Extras", fields.costo_extras_manual, false);
     }
     for (const insumo of insumosUsados) {
-      rows.push({
-        concept: insumo.name,
-        amount: round2(insumo.unitCost * insumo.quantity),
-        show_in_pdf: false,
-        sort_order: sortOrder++,
-      });
+      pushRow(insumo.name, round2(insumo.unitCost * insumo.quantity), false);
     }
     // Margen/Ganancia Neta: nunca show_in_pdf=true — ni siquiera se expone
-    // el checkbox en la UI (ver presupuestos-desglose-y-pdf.md §2).
+    // el checkbox en la UI, y acá se fuerza false sin mirar el historial
+    // (ver presupuestos-desglose-y-pdf.md §2).
     rows.push({
       concept: `Margen (${fields.margenPctUsado}%)`,
       amount: fields.gananciaNeta,
@@ -501,13 +523,8 @@ async function syncItemCostsAndSupplies(
     });
   }
 
-  rows.push({ concept: "Precio Unidad", amount: fields.base_unit_price, show_in_pdf: true, sort_order: sortOrder++ });
-  rows.push({
-    concept: "Precio Total",
-    amount: round2(fields.base_unit_price * fields.quantity),
-    show_in_pdf: true,
-    sort_order: sortOrder++,
-  });
+  pushRow("Precio Unidad", fields.base_unit_price, true);
+  pushRow("Precio Total", round2(fields.base_unit_price * fields.quantity), true);
 
   await supabase.from("quote_item_costs").insert(rows.map((r) => ({ ...r, quote_item_id: itemId })));
 }

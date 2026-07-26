@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, Fragment } from "react";
 import type { QuotePdfData, QuoteLine } from "@/lib/pdf/quoteTemplate";
 
 const formatoMoneda = new Intl.NumberFormat("es-UY", {
@@ -19,12 +19,22 @@ function LinesTable({ lines }: { lines: QuoteLine[] }) {
       </thead>
       <tbody>
         {lines.map((line, i) => (
-          <tr key={i} className="border-b border-[#eee]">
-            <td className="py-1.5">{line.description}</td>
-            <td className="py-1.5 text-right">{line.quantity}</td>
-            <td className="py-1.5 text-right">{formatoMoneda.format(line.unitPrice)}</td>
-            <td className="py-1.5 text-right font-semibold">{formatoMoneda.format(line.totalPrice)}</td>
-          </tr>
+          <Fragment key={i}>
+            <tr className="border-b border-[#eee]">
+              <td className="py-1.5">{line.description}</td>
+              <td className="py-1.5 text-right">{line.quantity}</td>
+              <td className="py-1.5 text-right">{formatoMoneda.format(line.unitPrice)}</td>
+              <td className="py-1.5 text-right font-semibold">{formatoMoneda.format(line.totalPrice)}</td>
+            </tr>
+            {line.costBreakdown?.map((cost, j) => (
+              <tr key={j} className="border-b border-[#eee] text-[#666] text-xs">
+                <td className="py-1 pl-4">{cost.concept}</td>
+                <td />
+                <td />
+                <td className="py-1 text-right">{formatoMoneda.format(cost.amount)}</td>
+              </tr>
+            ))}
+          </Fragment>
         ))}
       </tbody>
     </table>
@@ -101,6 +111,13 @@ export const QuoteDocumentPreview = forwardRef<HTMLDivElement, { data: QuotePdfD
           <div className="mb-4">
             <p className="text-sm font-semibold text-azul mb-2">Adicionales</p>
             <LinesTable lines={data.extras} />
+          </div>
+        )}
+
+        {data.totalGeneral > 0 && (
+          <div className="mb-4 flex items-center justify-between rounded bg-[#0F172A] px-4 py-3 text-white">
+            <span className="text-xs uppercase tracking-wide text-[#CBD5E1]">Total</span>
+            <span className="text-xl font-bold text-[#FF6B00]">{formatoMoneda.format(data.totalGeneral)}</span>
           </div>
         )}
 

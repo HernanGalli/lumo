@@ -49,8 +49,10 @@ export interface UploadOptions {
 // opción desactivada en Configuración) y genera 2 salidas — un .webp liviano
 // para el sitio (que pisa el mismo storage_path de siempre, sin romper
 // ningún consumidor existente) y un .jpg hermano "a prueba de PDF" al lado,
-// derivable con toPdfSafePath() cuando el código lo necesite (hoy: el logo
-// de marca en el header del PDF de presupuestos).
+// derivable con toPdfSafePath() para cuando el PDF necesite incrustar una
+// foto que sí pasó por este pipeline (ej. la foto de un ítem). El logo de
+// marca del PDF NO usa esto — se carga a mano fuera de este pipeline, así
+// que se decodifica al vuelo con sharp en lib/pdf/logo.ts en su lugar.
 export async function uploadToBucket(
   supabase: SupabaseClient,
   bucket: string,

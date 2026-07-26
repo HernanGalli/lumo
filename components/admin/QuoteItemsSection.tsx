@@ -75,9 +75,9 @@ export function QuoteItemsSection({
           </div>
         </div>
         {costs.length > 0 && (
-          <details className="mt-1">
+          <details className="mt-1" open>
             <summary className="cursor-pointer text-xs text-foreground-muted">
-              Desglose de costos ({costs.length})
+              Desglose de costos y qué se muestra en el PDF ({costs.length})
             </summary>
             <QuoteItemCostsTable quoteId={quoteId} costs={costs} />
           </details>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPublicUrl, toPdfSafePath } from "@/lib/supabase/storage";
+import { fetchPdfSafeImageDataUri } from "@/lib/pdf/logo";
 import { settingsRowsToMap } from "@/lib/settings";
 import { regenerateTiers, updateQuoteTierPrice } from "@/lib/actions/quotes";
 import { sendQuoteEmail } from "@/lib/actions/gmail";
@@ -89,10 +89,10 @@ export default async function PresupuestoDetailPage({
   const settings = settingsRowsToMap(settingsRows ?? []);
   const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
   const suggestedBasePrice = items?.[0]?.base_unit_price ?? 0;
-  const logoUrl = getPublicUrl(
+  const logoUrl = await fetchPdfSafeImageDataUri(
     supabase,
     "branding",
-    toPdfSafePath((settings.quote_logo_path as string) ?? null)
+    (settings.quote_logo_path as string) ?? null
   );
 
   const previewData = buildQuotePdfData({

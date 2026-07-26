@@ -7,7 +7,7 @@ import { settingsRowsToMap } from "@/lib/settings";
 import { disconnectGmail, sendGmailMessage } from "@/lib/gmail/client";
 import { generateQuotePdfBuffer } from "@/lib/pdf/generateQuotePdf";
 import { buildQuotePdfData } from "@/lib/pdf/buildQuoteData";
-import { getPublicUrl, toPdfSafePath } from "@/lib/supabase/storage";
+import { fetchPdfSafeImageDataUri } from "@/lib/pdf/logo";
 
 export async function disconnectGmailAction() {
   await disconnectGmail();
@@ -50,6 +50,11 @@ export async function sendQuoteEmail(formData: FormData) {
     : { data: [] };
 
   const settings = settingsRowsToMap(settingsRows ?? []);
+  const logoUrl = await fetchPdfSafeImageDataUri(
+    supabase,
+    "branding",
+    (settings.quote_logo_path as string) ?? null
+  );
 
   const pdfData = buildQuotePdfData({
     quote,
@@ -57,11 +62,7 @@ export async function sendQuoteEmail(formData: FormData) {
     tiers: tiers ?? [],
     itemCosts: itemCosts ?? [],
     settings,
-    logoUrl: getPublicUrl(
-      supabase,
-      "branding",
-      toPdfSafePath((settings.quote_logo_path as string) ?? null)
-    ),
+    logoUrl,
   });
 
   const pdfBuffer = await generateQuotePdfBuffer(pdfData);
