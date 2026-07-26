@@ -42,6 +42,7 @@ export async function submitInquiry(formData: FormData) {
   });
 
   if (error) {
+    console.error("No se pudo guardar la consulta:", error);
     return { ok: false as const, error: "No se pudo enviar. Probá de nuevo en un rato." };
   }
 
