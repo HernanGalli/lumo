@@ -57,5 +57,9 @@ export async function processImage(
     sharp(base).jpeg({ quality: 90 }).toBuffer(),
   ]);
 
-  return { webBuffer, pdfBuffer };
+  // sharp puede devolver buffers respaldados por el pool interno de threads
+  // de libvips (visto como un ArrayBuffer compartido) — el runtime de fetch
+  // de Vercel rechaza ese tipo de buffer como body con "SharedArrayBuffer is
+  // not allowed". Buffer.from() copia a un ArrayBuffer propio y no compartido.
+  return { webBuffer: Buffer.from(webBuffer), pdfBuffer: Buffer.from(pdfBuffer) };
 }
