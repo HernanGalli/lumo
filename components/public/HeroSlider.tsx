@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { trackClick } from "@/lib/actions/analytics";
 
 export interface HeroBanner {
   id: string;
@@ -69,10 +70,18 @@ export function HeroSlider({ banners }: { banners: HeroBanner[] }) {
         <h1 className="hero__titulo">{activeBanner?.headline || DEFAULT_HEADLINE}</h1>
         <p className="hero__parrafo">{activeBanner?.bodyText || DEFAULT_BODY}</p>
         <div className="hero__botones">
-          <a href="#proceso" className="boton">
+          <a
+            href="/empresas#cotizar"
+            className="boton"
+            onClick={() => trackClick("hero_cta", "/", "crear_llavero")}
+          >
             Crear mi llavero personalizado
           </a>
-          <a href="/empresas" className="boton boton--outline">
+          <a
+            href="/empresas#cotizar"
+            className="boton boton--outline"
+            onClick={() => trackClick("hero_cta", "/", "pedir_cotizacion")}
+          >
             Pedir cotización
           </a>
         </div>

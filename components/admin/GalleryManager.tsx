@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { DragReorderList } from "@/components/admin/DragReorderList";
+import { MediaPicker, type ResolvedMedia } from "@/components/admin/MediaPicker";
 
 interface ImageRow {
   id: string;
@@ -10,6 +12,7 @@ interface ImageRow {
 export function GalleryManager({
   entityId,
   entityFieldName,
+  bucket,
   images,
   addAction,
   deleteAction,
@@ -17,11 +20,20 @@ export function GalleryManager({
 }: {
   entityId: string;
   entityFieldName: string;
+  bucket: string;
   images: ImageRow[];
   addAction: (formData: FormData) => void | Promise<void>;
   deleteAction: (formData: FormData) => void | Promise<void>;
   reorderAction: (entityId: string, orderedIds: string[]) => void | Promise<void>;
 }) {
+  const libraryFormRef = useRef<HTMLFormElement>(null);
+  const preUploadedPathRef = useRef<HTMLInputElement>(null);
+
+  function handleResolved(result: ResolvedMedia) {
+    if (preUploadedPathRef.current) preUploadedPathRef.current.value = result.storagePath;
+    libraryFormRef.current?.requestSubmit();
+  }
+
   return (
     <div className="rounded-lg border border-border bg-surface p-6">
       <h2 className="font-medium mb-1">Fotos</h2>
@@ -65,6 +77,11 @@ export function GalleryManager({
         >
           Subir
         </button>
+        <MediaPicker targetBucket={bucket} onResolved={handleResolved} />
+      </form>
+      <form ref={libraryFormRef} action={addAction} className="hidden">
+        <input type="hidden" name={entityFieldName} value={entityId} />
+        <input ref={preUploadedPathRef} type="hidden" name="preUploadedPath" />
       </form>
     </div>
   );

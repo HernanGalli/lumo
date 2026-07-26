@@ -36,11 +36,17 @@ export async function createBanner(formData: FormData) {
   const supabase = await createClient();
   const parsed = parseBannerForm(formData);
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Subí una imagen o video para el banner");
+  const preUploadedPath = formData.get("preUploadedPath");
+  let storagePath: string;
+  if (typeof preUploadedPath === "string" && preUploadedPath) {
+    storagePath = preUploadedPath;
+  } else {
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new Error("Subí una imagen o video para el banner, o elegí uno de la biblioteca");
+    }
+    storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType);
   }
-  const storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType);
 
   let posterStoragePath: string | null = null;
   const posterFile = formData.get("posterFile");
@@ -87,8 +93,12 @@ export async function updateBanner(formData: FormData) {
     .single();
 
   let storagePath = current?.storage_path ?? null;
+  const preUploadedPath = formData.get("preUploadedPath");
   const file = formData.get("file");
-  if (file instanceof File && file.size > 0) {
+  if (typeof preUploadedPath === "string" && preUploadedPath) {
+    storagePath = preUploadedPath;
+    if (current?.storage_path) await deleteFromBucket(supabase, "banners", current.storage_path);
+  } else if (file instanceof File && file.size > 0) {
     storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType);
     if (current?.storage_path) await deleteFromBucket(supabase, "banners", current.storage_path);
   }

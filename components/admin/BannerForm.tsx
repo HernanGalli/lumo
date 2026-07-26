@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MediaPicker, type ResolvedMedia } from "@/components/admin/MediaPicker";
 
 interface BannerFormProps {
   action: (formData: FormData) => void | Promise<void>;
@@ -27,6 +28,11 @@ function toDateInputValue(value: string | null): string {
 export function BannerForm({ action, banner, submitLabel }: BannerFormProps) {
   const [mediaType, setMediaType] = useState(banner?.media_type ?? "video");
   const [pageTarget, setPageTarget] = useState(banner?.page_target ?? "home");
+  const [libraryPick, setLibraryPick] = useState<ResolvedMedia | null>(null);
+
+  function handleResolved(result: ResolvedMedia) {
+    setLibraryPick(result);
+  }
 
   const inputClass =
     "w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-azul";
@@ -93,14 +99,23 @@ export function BannerForm({ action, banner, submitLabel }: BannerFormProps) {
           {mediaType === "video" ? "Video" : "Imagen"}
           {banner && " (dejar vacío para no cambiarlo)"}
         </label>
-        <input
-          id="file"
-          name="file"
-          type="file"
-          accept={mediaType === "video" ? "video/mp4,video/webm" : "image/jpeg,image/png,image/webp"}
-          required={!banner}
-          className="w-full text-sm"
-        />
+        <input type="hidden" name="preUploadedPath" value={libraryPick?.storagePath ?? ""} />
+        <div className="flex items-center gap-3">
+          <input
+            id="file"
+            name="file"
+            type="file"
+            accept={mediaType === "video" ? "video/mp4,video/webm" : "image/jpeg,image/png,image/webp"}
+            required={!banner && !libraryPick}
+            className="flex-1 text-sm"
+          />
+          {mediaType === "image" && (
+            <MediaPicker targetBucket="banners" onResolved={handleResolved} />
+          )}
+        </div>
+        {libraryPick && (
+          <p className="mt-1 text-xs text-cian">Elegiste una imagen de la biblioteca ✓</p>
+        )}
       </div>
 
       {mediaType === "video" && (

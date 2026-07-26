@@ -8,6 +8,7 @@ import { Footer } from "@/components/public/Footer";
 import { WhatsAppBubble } from "@/components/public/WhatsAppBubble";
 import { ContactModal } from "@/components/public/ContactModal";
 import { ProductInquiryModal } from "@/components/public/ProductInquiryModal";
+import { Analytics } from "@/components/public/Analytics";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -40,6 +41,7 @@ export default async function PublicLayout({ children }: { children: React.React
   return (
     <div className={`${inter.variable} ${spaceGrotesk.variable} sitio-publico`}>
       <ModalProvider>
+        <Analytics />
         <Nav logoUrl={logoUrl} />
         <main>{children}</main>
         <Footer logoUrl={logoUrl} />

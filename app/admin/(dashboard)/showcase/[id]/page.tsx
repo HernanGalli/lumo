@@ -58,6 +58,7 @@ export default async function EditarShowcasePage({
       <GalleryManager
         entityId={post.id}
         entityFieldName="postId"
+        bucket="showcase"
         images={imageRows}
         addAction={addShowcaseImage}
         deleteAction={deleteShowcaseImage}

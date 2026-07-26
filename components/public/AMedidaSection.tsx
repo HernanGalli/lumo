@@ -1,10 +1,4 @@
-"use client";
-
-import { useModal } from "@/components/public/modal-context";
-
 export function AMedidaSection() {
-  const { openContact } = useModal();
-
   return (
     <section
       id="a-medida"
@@ -20,9 +14,9 @@ export function AMedidaSection() {
           Desde prototipos funcionales hasta decoraciones personalizadas, convertimos tus
           conceptos en piezas tangibles con la precisión de la impresión 3D.
         </p>
-        <button type="button" className="boton boton--blanco" onClick={openContact}>
+        <a href="/empresas#cotizar" className="boton boton--blanco">
           Cotiza tu Proyecto
-        </button>
+        </a>
       </div>
     </section>
   );

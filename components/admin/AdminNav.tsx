@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/catalogo", label: "Catálogo" },
   { href: "/admin/banners", label: "Banners" },
   { href: "/admin/showcase", label: "Showcase" },
+  { href: "/admin/biblioteca", label: "Biblioteca de medios" },
   { href: "/admin/leads", label: "Leads Empresas" },
   { href: "/admin/logos-clientes", label: "Logos de Clientes" },
   { href: "/admin/materiales", label: "Materiales e Impresoras" },

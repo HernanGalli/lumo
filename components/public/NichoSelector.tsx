@@ -1,26 +1,29 @@
-const WHATSAPP_NUMBER = "59898753757";
+"use client";
+
+import { trackClick } from "@/lib/actions/analytics";
 
 const NICHOS = [
   {
     titulo: "Empresas & Marcas",
     texto: "Merchandising institucional y regalos empresariales en volumen.",
-    href: "/empresas",
+    slug: "empresas_marcas",
   },
   {
     titulo: "Cuadros, Filiales & Equipos",
     texto: "Escudos, fútbol 5, baby fútbol y torneos.",
-    href: `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      "Hola LUMO, quiero llaveros/merchandising con el escudo de mi cuadro o equipo..."
-    )}`,
+    slug: "cuadros_filiales_equipos",
   },
   {
     titulo: "Eventos & Agrupaciones",
     texto: "Cumpleaños, egresados, bandas y festivales.",
-    href: `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      "Hola LUMO, quiero merchandising personalizado para un evento/agrupación..."
-    )}`,
+    slug: "eventos_agrupaciones",
   },
 ];
+
+// Los tres nichos llevan al mismo formulario con pasos (incluye subir la
+// imagen/escudo de referencia) — antes dos de ellos iban directo a WhatsApp
+// y se perdía la carga estructurada del archivo.
+const COTIZAR_HREF = "/empresas#cotizar";
 
 export function NichoSelector() {
   return (
@@ -30,9 +33,8 @@ export function NichoSelector() {
         {NICHOS.map((nicho) => (
           <a
             key={nicho.titulo}
-            href={nicho.href}
-            target={nicho.href.startsWith("http") ? "_blank" : undefined}
-            rel={nicho.href.startsWith("http") ? "noopener noreferrer" : undefined}
+            href={COTIZAR_HREF}
+            onClick={() => trackClick("nicho_selector", "/", nicho.slug)}
             className="group rounded-lg border border-border bg-surface p-6 transition-colors hover:border-azul"
           >
             <h3 className="font-medium mb-2 text-lg group-hover:text-azul transition-colors">

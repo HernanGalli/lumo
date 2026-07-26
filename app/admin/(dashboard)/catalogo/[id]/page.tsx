@@ -62,6 +62,7 @@ export default async function EditarProductoPage({
       <GalleryManager
         entityId={product.id}
         entityFieldName="productId"
+        bucket="products"
         images={imageRows}
         addAction={addProductImage}
         deleteAction={deleteProductImage}

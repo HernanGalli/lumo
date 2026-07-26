@@ -167,12 +167,18 @@ export async function reorderProductsInCategory(categoryId: string, orderedProdu
 export async function addProductImage(formData: FormData) {
   const supabase = await createClient();
   const productId = z.string().uuid().parse(formData.get("productId"));
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Elegí una imagen para subir");
-  }
 
-  const storagePath = await uploadToBucket(supabase, "products", file, "image");
+  const preUploadedPath = formData.get("preUploadedPath");
+  let storagePath: string;
+  if (typeof preUploadedPath === "string" && preUploadedPath) {
+    storagePath = preUploadedPath;
+  } else {
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new Error("Elegí una imagen para subir");
+    }
+    storagePath = await uploadToBucket(supabase, "products", file, "image");
+  }
 
   const { data: maxRow } = await supabase
     .from("product_images")
