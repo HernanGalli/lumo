@@ -7,6 +7,10 @@ const links = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/calculadora", label: "Calculadora" },
   { href: "/admin/presupuestos", label: "Presupuestos" },
+  { href: "/admin/ventas", label: "Ventas" },
+  { href: "/admin/catalogo", label: "Catálogo" },
+  { href: "/admin/banners", label: "Banners" },
+  { href: "/admin/showcase", label: "Showcase" },
   { href: "/admin/materiales", label: "Materiales e Impresoras" },
   { href: "/admin/configuracion", label: "Configuración" },
 ];

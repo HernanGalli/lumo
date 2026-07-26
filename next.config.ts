@@ -14,6 +14,7 @@ const contentSecurityPolicy = [
   scriptSrc,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co",
+  "media-src 'self' blob: https://*.supabase.co",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co",
   "frame-ancestors 'none'",
