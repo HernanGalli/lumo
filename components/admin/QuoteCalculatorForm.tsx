@@ -54,6 +54,7 @@ export function QuoteCalculatorForm({
   const [valorHora, setValorHora] = useState(defaultValorHora);
   const [margenPct, setMargenPct] = useState(defaultMargenPct);
   const [selectedSupplies, setSelectedSupplies] = useState<Record<string, number>>({});
+  const [costoExtrasManual, setCostoExtrasManual] = useState(0);
   const [loteQuantity, setLoteQuantity] = useState(1);
 
   const material = materials.find((m) => m.id === materialId);
@@ -88,9 +89,9 @@ export function QuoteCalculatorForm({
             unitCost: supplies.find((s) => s.id === supplyId)?.unit_cost ?? 0,
             quantity,
           }))
-        )
+        ) + (costoExtrasManual || 0)
       ),
-    [selectedSupplies, supplies]
+    [selectedSupplies, supplies, costoExtrasManual]
   );
 
   const costoTotalConInsumos = round2(
@@ -273,6 +274,24 @@ export function QuoteCalculatorForm({
         </div>
 
         <div>
+          <label className={labelClass} htmlFor="costoExtrasManual">
+            Costos Extras ($U)
+          </label>
+          <input
+            id="costoExtrasManual"
+            type="number"
+            min={0}
+            step="0.01"
+            value={costoExtrasManual}
+            onChange={(e) => setCostoExtrasManual(Number(e.target.value) || 0)}
+            className={inputClass}
+          />
+          <p className="text-xs text-foreground-muted mt-1">
+            Costo adicional en pesos, sin necesidad de que sea un insumo dado de alta.
+          </p>
+        </div>
+
+        <div>
           <label className={labelClass} htmlFor="loteQuantity">
             Cantidad de piezas del lote
           </label>
@@ -304,7 +323,7 @@ export function QuoteCalculatorForm({
         <div className="rounded-lg border border-azul/40 bg-azul/5 p-6 flex flex-col gap-2 text-sm">
           <h3 className="font-medium mb-1">Con insumos y lote</h3>
           <div className="flex justify-between">
-            <span className="text-foreground-muted">Costos Extras (insumos)</span>
+            <span className="text-foreground-muted">Costos Extras (insumos + manual)</span>
             <span>${costosExtras}</span>
           </div>
           <div className="flex justify-between">

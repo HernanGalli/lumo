@@ -30,6 +30,7 @@ export interface ExistingQuoteItem {
   quantity: number;
   item_type: "producto" | "extra";
   lote_quantity?: number | null;
+  costo_extras_manual?: number | null;
   suppliesUsed?: { supply_id: string; quantity: number }[];
 }
 
@@ -205,6 +206,25 @@ export function QuoteItemForm({
                 defaultValue={item?.tiempo_diseno_horas ?? undefined}
                 className={inputClass}
               />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="costoExtrasManual">
+                Costos Extras ($U)
+              </label>
+              <input
+                id="costoExtrasManual"
+                name="costoExtrasManual"
+                type="number"
+                step="0.01"
+                min={0}
+                defaultValue={item?.costo_extras_manual ?? ""}
+                placeholder="Opcional"
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-foreground-muted">
+                Costo adicional en pesos, sumado al total antes del margen (packaging, envío,
+                mano de obra puntual...).
+              </p>
             </div>
             <div>
               <label className={labelClass} htmlFor="margenPct">

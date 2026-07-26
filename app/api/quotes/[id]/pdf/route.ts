@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPublicUrl, toPdfSafePath } from "@/lib/supabase/storage";
 import { settingsRowsToMap } from "@/lib/settings";
 import { generateQuotePdfBuffer } from "@/lib/pdf/generateQuotePdf";
 import { buildQuotePdfData } from "@/lib/pdf/buildQuoteData";
+import { fetchPdfSafeImageDataUri } from "@/lib/pdf/logo";
 
 export async function GET(
   _request: Request,
@@ -47,6 +47,11 @@ export async function GET(
     : { data: [] };
 
   const settings = settingsRowsToMap(settingsRows ?? []);
+  const logoUrl = await fetchPdfSafeImageDataUri(
+    supabase,
+    "branding",
+    (settings.quote_logo_path as string) ?? null
+  );
 
   const data = buildQuotePdfData({
     quote,
@@ -54,11 +59,7 @@ export async function GET(
     tiers: tiers ?? [],
     itemCosts: itemCosts ?? [],
     settings,
-    logoUrl: getPublicUrl(
-      supabase,
-      "branding",
-      toPdfSafePath((settings.quote_logo_path as string) ?? null)
-    ),
+    logoUrl,
   });
 
   const pdfBuffer = await generateQuotePdfBuffer(data);

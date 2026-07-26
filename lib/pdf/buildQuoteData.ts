@@ -88,7 +88,14 @@ export function buildQuotePdfData(params: {
     .sort((a, b) => a.sort_order - b.sort_order);
 
   let itemLines: ReturnType<typeof buildLine>[];
-  if (quote.pdf_summary_mode === "resumen" && productos.length > 0) {
+  // El modo "resumen" solo tiene sentido para colapsar VARIOS productos en
+  // una sola línea — con un solo producto (el caso más común) no hay nada
+  // que resumir, así que se muestra igual que en "desglose" (con su
+  // desglose de costos disponible). Antes esto se activaba con
+  // productos.length > 0, lo que hacía que el desglose de costos nunca se
+  // viera en el PDF salvo que el admin supiera cambiar a "desglose" en otra
+  // pantalla — ver presupuestos-desglose-y-pdf.md.
+  if (quote.pdf_summary_mode === "resumen" && productos.length > 1) {
     const totalQty = productos.reduce((sum, i) => sum + i.quantity, 0);
     const totalPrice = productos.reduce((sum, i) => sum + i.base_unit_price * i.quantity, 0);
     const label =
