@@ -45,13 +45,17 @@ export async function createBanner(formData: FormData) {
     if (!(file instanceof File) || file.size === 0) {
       throw new Error("Subí una imagen o video para el banner, o elegí uno de la biblioteca");
     }
-    storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType);
+    storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType, {
+      skipFilter: formData.get("skipFilter") === "on",
+    });
   }
 
   let posterStoragePath: string | null = null;
   const posterFile = formData.get("posterFile");
   if (parsed.mediaType === "video" && posterFile instanceof File && posterFile.size > 0) {
-    posterStoragePath = await uploadToBucket(supabase, "banners", posterFile, "image");
+    posterStoragePath = await uploadToBucket(supabase, "banners", posterFile, "image", {
+      skipFilter: formData.get("skipFilter") === "on",
+    });
   }
 
   const { data: maxRow } = await supabase
@@ -99,14 +103,18 @@ export async function updateBanner(formData: FormData) {
     storagePath = preUploadedPath;
     if (current?.storage_path) await deleteFromBucket(supabase, "banners", current.storage_path);
   } else if (file instanceof File && file.size > 0) {
-    storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType);
+    storagePath = await uploadToBucket(supabase, "banners", file, parsed.mediaType, {
+      skipFilter: formData.get("skipFilter") === "on",
+    });
     if (current?.storage_path) await deleteFromBucket(supabase, "banners", current.storage_path);
   }
 
   let posterStoragePath = current?.poster_storage_path ?? null;
   const posterFile = formData.get("posterFile");
   if (parsed.mediaType === "video" && posterFile instanceof File && posterFile.size > 0) {
-    posterStoragePath = await uploadToBucket(supabase, "banners", posterFile, "image");
+    posterStoragePath = await uploadToBucket(supabase, "banners", posterFile, "image", {
+      skipFilter: formData.get("skipFilter") === "on",
+    });
     if (current?.poster_storage_path) {
       await deleteFromBucket(supabase, "banners", current.poster_storage_path);
     }

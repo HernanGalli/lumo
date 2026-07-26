@@ -13,7 +13,8 @@ export async function createClientLogo(formData: FormData) {
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("Elegí una imagen de logo");
   }
-  const storagePath = await uploadToBucket(supabase, "client-logos", file, "image");
+  const skipFilter = formData.get("skipFilter") === "on";
+  const storagePath = await uploadToBucket(supabase, "client-logos", file, "image", { skipFilter });
 
   const { data: maxRow } = await supabase
     .from("client_logos")

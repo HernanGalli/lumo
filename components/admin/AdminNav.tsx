@@ -12,9 +12,11 @@ const links = [
   { href: "/admin/banners", label: "Banners" },
   { href: "/admin/showcase", label: "Showcase" },
   { href: "/admin/biblioteca", label: "Biblioteca de medios" },
-  { href: "/admin/leads", label: "Leads Empresas" },
+  { href: "/admin/segmentos", label: "Segmentos (Llaveros)" },
+  { href: "/admin/leads", label: "Leads" },
   { href: "/admin/logos-clientes", label: "Logos de Clientes" },
   { href: "/admin/materiales", label: "Materiales e Impresoras" },
+  { href: "/admin/insumos", label: "Insumos" },
   { href: "/admin/configuracion", label: "Configuración" },
 ];
 

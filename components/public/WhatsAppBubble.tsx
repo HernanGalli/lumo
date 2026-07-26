@@ -2,15 +2,23 @@
 
 import { usePathname } from "next/navigation";
 import { trackClick } from "@/lib/actions/analytics";
+import { getSegmentBySlug } from "@/lib/segments";
 
 const WHATSAPP_NUMBER = "59898753757";
 const DEFAULT_MESSAGE = "Hola! Quiero consultar por...";
-const CORPORATE_MESSAGE =
-  "Hola LUMO, me interesa solicitar un presupuesto o kit de muestras para mi empresa...";
 
-export function WhatsAppBubble() {
+// El mensaje cambia según el segmento activo (mismo mecanismo que ya existía
+// para /empresas, generalizado a los 5 segmentos de /llaveros). El copy en
+// sí vive en segment_content.whatsapp_message (editable desde
+// /admin/segmentos) — acá solo se resuelve cuál mensaje corresponde según
+// la ruta actual.
+export function WhatsAppBubble({
+  segmentMessages,
+}: {
+  segmentMessages: Record<string, string>;
+}) {
   const pathname = usePathname();
-  const message = pathname?.startsWith("/empresas") ? CORPORATE_MESSAGE : DEFAULT_MESSAGE;
+  const message = resolveMessage(pathname, segmentMessages);
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
   return (
@@ -27,4 +35,20 @@ export function WhatsAppBubble() {
       </svg>
     </a>
   );
+}
+
+function resolveMessage(pathname: string | null, segmentMessages: Record<string, string>): string {
+  if (!pathname) return DEFAULT_MESSAGE;
+
+  if (pathname.startsWith("/empresas")) {
+    return segmentMessages["empresa"] ?? DEFAULT_MESSAGE;
+  }
+
+  const match = pathname.match(/^\/llaveros\/([^/]+)/);
+  if (match) {
+    const segment = getSegmentBySlug(match[1]);
+    if (segment) return segmentMessages[segment.dbValue] ?? DEFAULT_MESSAGE;
+  }
+
+  return DEFAULT_MESSAGE;
 }

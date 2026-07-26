@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPublicUrl } from "@/lib/supabase/storage";
+import { getPublicUrl, toPdfSafePath } from "@/lib/supabase/storage";
 import { settingsRowsToMap } from "@/lib/settings";
 import { generateQuotePdfBuffer } from "@/lib/pdf/generateQuotePdf";
 import { buildQuotePdfData } from "@/lib/pdf/buildQuoteData";
@@ -26,7 +26,7 @@ export async function GET(
       supabase.from("quotes").select("*").eq("id", id).single(),
       supabase
         .from("quote_items")
-        .select("description, quantity, base_unit_price, item_type, sort_order")
+        .select("id, description, quantity, base_unit_price, item_type, sort_order")
         .eq("quote_id", id)
         .order("sort_order", { ascending: true }),
       supabase
@@ -41,14 +41,24 @@ export async function GET(
     return NextResponse.json({ error: "Presupuesto no encontrado" }, { status: 404 });
   }
 
+  const itemIds = (items ?? []).map((i) => i.id);
+  const { data: itemCosts } = itemIds.length
+    ? await supabase.from("quote_item_costs").select("quote_item_id, concept, amount, show_in_pdf").in("quote_item_id", itemIds)
+    : { data: [] };
+
   const settings = settingsRowsToMap(settingsRows ?? []);
 
   const data = buildQuotePdfData({
     quote,
     items: items ?? [],
     tiers: tiers ?? [],
+    itemCosts: itemCosts ?? [],
     settings,
-    logoUrl: getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null),
+    logoUrl: getPublicUrl(
+      supabase,
+      "branding",
+      toPdfSafePath((settings.quote_logo_path as string) ?? null)
+    ),
   });
 
   const pdfBuffer = await generateQuotePdfBuffer(data);

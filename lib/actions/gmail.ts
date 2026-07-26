@@ -7,7 +7,7 @@ import { settingsRowsToMap } from "@/lib/settings";
 import { disconnectGmail, sendGmailMessage } from "@/lib/gmail/client";
 import { generateQuotePdfBuffer } from "@/lib/pdf/generateQuotePdf";
 import { buildQuotePdfData } from "@/lib/pdf/buildQuoteData";
-import { getPublicUrl } from "@/lib/supabase/storage";
+import { getPublicUrl, toPdfSafePath } from "@/lib/supabase/storage";
 
 export async function disconnectGmailAction() {
   await disconnectGmail();
@@ -31,7 +31,7 @@ export async function sendQuoteEmail(formData: FormData) {
       supabase.from("quotes").select("*").eq("id", quoteId).single(),
       supabase
         .from("quote_items")
-        .select("description, quantity, base_unit_price, item_type, sort_order")
+        .select("id, description, quantity, base_unit_price, item_type, sort_order")
         .eq("quote_id", quoteId)
         .order("sort_order", { ascending: true }),
       supabase
@@ -44,14 +44,24 @@ export async function sendQuoteEmail(formData: FormData) {
 
   if (!quote) throw new Error("Presupuesto no encontrado");
 
+  const itemIds = (items ?? []).map((i) => i.id);
+  const { data: itemCosts } = itemIds.length
+    ? await supabase.from("quote_item_costs").select("quote_item_id, concept, amount, show_in_pdf").in("quote_item_id", itemIds)
+    : { data: [] };
+
   const settings = settingsRowsToMap(settingsRows ?? []);
 
   const pdfData = buildQuotePdfData({
     quote,
     items: items ?? [],
     tiers: tiers ?? [],
+    itemCosts: itemCosts ?? [],
     settings,
-    logoUrl: getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null),
+    logoUrl: getPublicUrl(
+      supabase,
+      "branding",
+      toPdfSafePath((settings.quote_logo_path as string) ?? null)
+    ),
   });
 
   const pdfBuffer = await generateQuotePdfBuffer(pdfData);

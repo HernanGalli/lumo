@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { DragReorderList } from "@/components/admin/DragReorderList";
 import { MediaPicker, type ResolvedMedia } from "@/components/admin/MediaPicker";
+import { SkipFilterCheckbox } from "@/components/admin/SkipFilterCheckbox";
 
 interface ImageRow {
   id: string;
@@ -62,7 +63,7 @@ export function GalleryManager({
         </div>
       )}
 
-      <form action={addAction} className="flex items-center gap-2 pt-4 border-t border-border">
+      <form action={addAction} className="flex flex-wrap items-center gap-2 pt-4 border-t border-border">
         <input type="hidden" name={entityFieldName} value={entityId} />
         <input
           type="file"
@@ -71,6 +72,7 @@ export function GalleryManager({
           required
           className="flex-1 text-sm"
         />
+        <SkipFilterCheckbox />
         <button
           type="submit"
           className="rounded-md bg-azul px-3 py-1.5 text-sm text-white hover:bg-azul-claro"

@@ -31,6 +31,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // sharp usa un binario nativo — no debe bundlearse con webpack, tiene que
+  // resolverse como dependencia normal de Node en el runtime del server.
+  serverExternalPackages: ["sharp"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

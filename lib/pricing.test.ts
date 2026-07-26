@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   calcCostoBreakdown,
+  calcCostosExtras,
+  calcCostoTotal,
+  calcGananciaNeta,
   calcPrecioSugerido,
+  calcPrecioUnidad,
+  calcPrecioVenta,
   findTierPrice,
   generateTierTable,
 } from "./pricing";
@@ -69,5 +74,50 @@ describe("generateTierTable / findTierPrice", () => {
     expect(findTierPrice(table, 15)).toBe(250);
     expect(findTierPrice(table, 30)).toBe(220);
     expect(findTierPrice(table, 500)).toBe(200);
+  });
+});
+
+describe("calcCostosExtras", () => {
+  it("suma costo unitario x cantidad de cada insumo usado", () => {
+    const insumos = [
+      { unitCost: 8, quantity: 1 }, // argolla
+      { unitCost: 12, quantity: 1 }, // cadena
+      { unitCost: 10, quantity: 1 }, // packaging
+      { unitCost: 15, quantity: 1 }, // mano de obra
+    ];
+    expect(calcCostosExtras(insumos)).toBeCloseTo(45, 6);
+  });
+
+  it("devuelve 0 sin insumos", () => {
+    expect(calcCostosExtras([])).toBe(0);
+  });
+});
+
+describe("calcCostoTotal / calcGananciaNeta / calcPrecioVenta / calcPrecioUnidad", () => {
+  // Caso real de calculadora-costos-e-insumos.md §4: "50 Llaveros 26mm x
+  // 80mm" — Costo Total 634,62, Precio Venta 1903,87, Cantidad 50 → Precio
+  // Unidad ≈ 38,08.
+  const costoTotal = 634.62;
+  const precioVentaEsperado = 1903.87;
+  const cantidadPiezas = 50;
+
+  it("calcCostoTotal suma material + eléctrico + extras", () => {
+    expect(calcCostoTotal(100, 20, 5)).toBeCloseTo(125, 6);
+  });
+
+  it("reproduce el margen implícito del caso real de la planilla", () => {
+    const margenPct = ((precioVentaEsperado - costoTotal) / costoTotal) * 100;
+    const gananciaNeta = calcGananciaNeta(costoTotal, margenPct);
+    const precioVenta = calcPrecioVenta(costoTotal, gananciaNeta);
+    expect(precioVenta).toBeCloseTo(precioVentaEsperado, 1);
+  });
+
+  it("calcPrecioUnidad reproduce el precio por unidad del caso real (≈38,08)", () => {
+    expect(calcPrecioUnidad(precioVentaEsperado, cantidadPiezas)).toBeCloseTo(38.08, 1);
+  });
+
+  it("calcPrecioUnidad rechaza cantidad de piezas <= 0", () => {
+    expect(() => calcPrecioUnidad(1000, 0)).toThrow();
+    expect(() => calcPrecioUnidad(1000, -1)).toThrow();
   });
 });

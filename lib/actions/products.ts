@@ -177,7 +177,9 @@ export async function addProductImage(formData: FormData) {
     if (!(file instanceof File) || file.size === 0) {
       throw new Error("Elegí una imagen para subir");
     }
-    storagePath = await uploadToBucket(supabase, "products", file, "image");
+    storagePath = await uploadToBucket(supabase, "products", file, "image", {
+      skipFilter: formData.get("skipFilter") === "on",
+    });
   }
 
   const { data: maxRow } = await supabase

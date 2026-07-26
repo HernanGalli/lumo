@@ -25,6 +25,39 @@ export async function updateSettings(formData: FormData) {
   revalidatePath("/admin/calculadora");
 }
 
+const photoSettingsSchema = z.object({
+  fotoFiltroActivo: z.coerce.boolean(),
+  fotoFiltroIntensidad: z.enum(["suave", "medio", "fuerte"]),
+  fotoAnchoMaximoPx: z.coerce.number().int().min(200).max(4000),
+  fotoCalidadWebp: z.coerce.number().int().min(1).max(100),
+});
+
+// Separado de updateSettings a propósito: estas 4 claves no encajan en el
+// loop genérico de SETTINGS_FIELDS (number/text/textarea) — necesitan
+// switch/select/slider (ver components/admin/PhotoSettingsForm.tsx).
+export async function updatePhotoSettings(formData: FormData) {
+  const supabase = await createClient();
+  const parsed = photoSettingsSchema.parse({
+    fotoFiltroActivo: formData.get("fotoFiltroActivo") === "on",
+    fotoFiltroIntensidad: formData.get("fotoFiltroIntensidad"),
+    fotoAnchoMaximoPx: formData.get("fotoAnchoMaximoPx"),
+    fotoCalidadWebp: formData.get("fotoCalidadWebp"),
+  });
+
+  const { error } = await supabase.from("settings").upsert(
+    [
+      { key: "foto_filtro_activo", value: parsed.fotoFiltroActivo },
+      { key: "foto_filtro_intensidad", value: parsed.fotoFiltroIntensidad },
+      { key: "foto_ancho_maximo_px", value: parsed.fotoAnchoMaximoPx },
+      { key: "foto_calidad_webp", value: parsed.fotoCalidadWebp },
+    ],
+    { onConflict: "key" }
+  );
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/configuracion");
+}
+
 const tierRuleSchema = z.object({
   minQty: z.coerce.number().int().min(1),
   maxQty: z.union([z.coerce.number().int().min(1), z.literal("")]).optional(),

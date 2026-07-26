@@ -47,8 +47,13 @@ export function Footer({ logoUrl }: { logoUrl: string | null }) {
             </svg>
           </a>
         </div>
-        <p className="footer__texto">© {new Date().getFullYear()} LUMO. Diseño e Impresión 3D.</p>
-        <p className="footer__contacto">Montevideo, Uruguay</p>
+        <p className="footer__texto">
+          Llaveros personalizados para empresas, emprendimientos, escuelas y eventos. Hecho en
+          Montevideo, Uruguay.
+        </p>
+        <p className="footer__contacto">
+          © {new Date().getFullYear()} LUMO. Diseño e Impresión 3D. — Montevideo, Uruguay
+        </p>
       </div>
     </footer>
   );

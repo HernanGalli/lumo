@@ -20,6 +20,7 @@ interface QuoteRow {
 }
 
 interface QuoteItemRow {
+  id?: string;
   description: string | null;
   quantity: number;
   base_unit_price: number;
@@ -33,13 +34,37 @@ interface TierRow {
   unit_price: number;
 }
 
-function buildLine(description: string, quantity: number, unitPrice: number) {
+interface QuoteItemCostRow {
+  quote_item_id: string;
+  concept: string;
+  amount: number;
+  show_in_pdf: boolean;
+}
+
+function buildLine(
+  description: string,
+  quantity: number,
+  unitPrice: number,
+  costBreakdown?: { concept: string; amount: number }[]
+) {
   return {
     description,
     quantity,
     unitPrice: round2(unitPrice),
     totalPrice: round2(unitPrice * quantity),
+    costBreakdown: costBreakdown && costBreakdown.length > 0 ? costBreakdown : undefined,
   };
+}
+
+// Filas de quote_item_costs con show_in_pdf=true, sin las de Precio
+// Unidad/Precio Total (esas ya se muestran como la línea principal del
+// ítem) — el desglose visible es solo lo demás que el admin haya tildado.
+function costBreakdownFor(itemId: string | undefined, itemCosts: QuoteItemCostRow[]) {
+  if (!itemId) return [];
+  return itemCosts
+    .filter((c) => c.quote_item_id === itemId && c.show_in_pdf)
+    .filter((c) => c.concept !== "Precio Unidad" && c.concept !== "Precio Total")
+    .map((c) => ({ concept: c.concept, amount: round2(c.amount) }));
 }
 
 // Comparte esta lógica entre la ruta de descarga del PDF y la vista previa
@@ -48,10 +73,12 @@ export function buildQuotePdfData(params: {
   quote: QuoteRow;
   items: QuoteItemRow[];
   tiers: TierRow[];
+  itemCosts?: QuoteItemCostRow[];
   settings: SettingsMap;
   logoUrl: string | null;
 }): QuotePdfData {
   const { quote, items, tiers, settings, logoUrl } = params;
+  const itemCosts = params.itemCosts ?? [];
 
   const productos = items
     .filter((i) => i.item_type === "producto")
@@ -66,13 +93,22 @@ export function buildQuotePdfData(params: {
     const totalPrice = productos.reduce((sum, i) => sum + i.base_unit_price * i.quantity, 0);
     const label =
       quote.pdf_summary_label?.trim() || productos[0].description || "Ítems del proyecto";
+    // En modo resumen se colapsan varios ítems en una sola línea — no tiene
+    // sentido mostrar el desglose de costos de un ítem puntual acá.
     itemLines = totalQty > 0 ? [buildLine(label, totalQty, totalPrice / totalQty)] : [];
   } else {
-    itemLines = productos.map((i) => buildLine(i.description ?? "Ítem", i.quantity, i.base_unit_price));
+    itemLines = productos.map((i) =>
+      buildLine(i.description ?? "Ítem", i.quantity, i.base_unit_price, costBreakdownFor(i.id, itemCosts))
+    );
   }
 
   const extraLines = extras.map((i) =>
     buildLine(i.description ?? "Adicional", i.quantity, i.base_unit_price)
+  );
+
+  const totalGeneral = round2(
+    itemLines.reduce((sum, l) => sum + l.totalPrice, 0) +
+      (quote.pdf_show_extras ? extraLines.reduce((sum, l) => sum + l.totalPrice, 0) : 0)
   );
 
   return {
@@ -86,6 +122,7 @@ export function buildQuotePdfData(params: {
     projectSummary: quote.project_summary,
     items: itemLines,
     extras: extraLines,
+    totalGeneral,
     tiers: tiers.map((t) => ({ minQty: t.min_qty, maxQty: t.max_qty, unitPrice: t.unit_price })),
     showTiers: quote.pdf_show_tiers,
     showExtras: quote.pdf_show_extras,

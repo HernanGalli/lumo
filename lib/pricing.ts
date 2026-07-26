@@ -87,3 +87,37 @@ export function findTierPrice(rows: TierRow[], quantity: number): number | null 
 export function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
+
+// --- Insumos y precio por unidad (calculadora-costos-e-insumos.md) --------
+//
+// Nota: no se duplican "calcCostoMaterial"/"calcCostoElectrico" del
+// documento — son, matemáticamente, calcCostoMaterial(pesoGramos,
+// costoPorKg) y calcCostoEnergia(...) de arriba (la fórmula de "Costo
+// Rollo/Peso Rollo" del doc es la misma cuenta generalizada, con
+// pesoRollo=1000g por default). Se reutilizan esas funciones ya testeadas.
+
+export interface InsumoUsado {
+  unitCost: number;
+  quantity: number;
+}
+
+export function calcCostosExtras(insumos: InsumoUsado[]): number {
+  return insumos.reduce((sum, i) => sum + i.unitCost * i.quantity, 0);
+}
+
+export function calcCostoTotal(costoMaterial: number, costoEnergia: number, costosExtras: number): number {
+  return costoMaterial + costoEnergia + costosExtras;
+}
+
+export function calcGananciaNeta(costoTotal: number, margenPct: number): number {
+  return costoTotal * (margenPct / 100);
+}
+
+export function calcPrecioVenta(costoTotal: number, gananciaNeta: number): number {
+  return costoTotal + gananciaNeta;
+}
+
+export function calcPrecioUnidad(precioVenta: number, cantidadPiezas: number): number {
+  if (cantidadPiezas <= 0) throw new Error("La cantidad de piezas debe ser mayor a 0");
+  return precioVenta / cantidadPiezas;
+}
