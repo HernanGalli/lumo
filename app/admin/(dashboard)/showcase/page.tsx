@@ -9,7 +9,7 @@ export default async function ShowcasePage() {
   const [{ data: posts }, { data: categories }] = await Promise.all([
     supabase
       .from("showcase_posts")
-      .select("id, title, status, category_id")
+      .select("id, title, status, category_id, show_on_home")
       .order("sort_order", { ascending: true }),
     supabase.from("categories").select("id, name"),
   ]);
@@ -38,6 +38,7 @@ export default async function ShowcasePage() {
     status: p.status,
     categoryName: p.category_id ? categoryNameById.get(p.category_id) ?? null : null,
     thumbUrl: getPublicUrl(supabase, "showcase", firstImageByPost.get(p.id) ?? null),
+    showOnHome: p.show_on_home,
   }));
 
   return (

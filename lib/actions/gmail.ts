@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { settingsRowsToMap } from "@/lib/settings";
 import { disconnectGmail, sendGmailMessage } from "@/lib/gmail/client";
 import { generateQuotePdfBuffer } from "@/lib/pdf/generateQuotePdf";
-import type { QuotePdfData } from "@/lib/pdf/quoteTemplate";
+import { buildQuotePdfData } from "@/lib/pdf/buildQuoteData";
 import { getPublicUrl } from "@/lib/supabase/storage";
 
 export async function disconnectGmailAction() {
@@ -31,7 +31,7 @@ export async function sendQuoteEmail(formData: FormData) {
       supabase.from("quotes").select("*").eq("id", quoteId).single(),
       supabase
         .from("quote_items")
-        .select("description, quantity, base_unit_price, sort_order")
+        .select("description, quantity, base_unit_price, item_type, sort_order")
         .eq("quote_id", quoteId)
         .order("sort_order", { ascending: true }),
       supabase
@@ -46,33 +46,13 @@ export async function sendQuoteEmail(formData: FormData) {
 
   const settings = settingsRowsToMap(settingsRows ?? []);
 
-  const pdfData: QuotePdfData = {
-    quoteNumber: quote.quote_number,
-    clientName: quote.client_name,
-    clientContact: quote.client_contact,
-    createdAt: new Date(quote.created_at).toLocaleDateString("es-UY"),
-    validUntil: quote.valid_until,
-    deliveryEstimateDate: quote.delivery_estimate_date,
-    notes: quote.notes,
-    items: (items ?? []).map((item) => ({
-      description: item.description ?? "Ítem",
-      quantity: item.quantity,
-      basePrice: item.base_unit_price,
-    })),
-    tiers: (tiers ?? []).map((tier) => ({
-      minQty: tier.min_qty,
-      maxQty: tier.max_qty,
-      unitPrice: tier.unit_price,
-    })),
-    legalText: (settings.quote_legal_text as string) ?? "",
-    paymentTerms: (settings.quote_payment_terms as string) ?? "",
-    leadTimeText: (settings.quote_lead_time_text as string) ?? "",
+  const pdfData = buildQuotePdfData({
+    quote,
+    items: items ?? [],
+    tiers: tiers ?? [],
+    settings,
     logoUrl: getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null),
-    ivaPct: Number(settings.iva_pct ?? 0),
-    companyRut: (settings.company_rut as string) ?? "",
-    companyAddress: (settings.company_address as string) ?? "",
-    companyPhone: (settings.company_phone as string) ?? "",
-  };
+  });
 
   const pdfBuffer = await generateQuotePdfBuffer(pdfData);
   const subject = `Presupuesto LUMO ${quote.quote_number ?? ""}`.trim();

@@ -1,34 +1,91 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+// Identidad "Tech Luminescente": header oscuro con acento naranja, cian como
+// color secundario para destacar precios por cantidad. El cuerpo se mantiene
+// claro para que el PDF siga siendo legible al imprimir/reenviar por mail.
+const NAVY = "#0F172A";
+const ORANGE = "#FF6B00";
+const CYAN = "#06B6D4";
+const MUTED = "#64748B";
+const TEXT = "#1E293B";
+
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#333333" },
-  header: { marginBottom: 20, borderBottom: "2 solid #254b8a", paddingBottom: 12 },
-  brand: { fontSize: 20, fontWeight: 700, color: "#254b8a" },
-  subBrand: { fontSize: 9, color: "#666666", marginTop: 2 },
-  quoteNumber: { fontSize: 11, marginTop: 8 },
+  page: { padding: 0, fontSize: 10, fontFamily: "Helvetica", color: TEXT },
+  header: {
+    backgroundColor: NAVY,
+    color: "#ffffff",
+    padding: "28 40",
+  },
+  headerAccent: { height: 4, backgroundColor: ORANGE },
+  brand: { fontSize: 22, fontWeight: 700, color: "#ffffff" },
+  subBrand: { fontSize: 9, color: "#CBD5E1", marginTop: 3 },
+  quoteNumber: {
+    fontSize: 11,
+    marginTop: 10,
+    color: ORANGE,
+    fontWeight: 700,
+  },
+  body: { padding: "24 40 40" },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 11, fontWeight: 700, color: "#254b8a", marginBottom: 6 },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: NAVY,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sectionAccentLine: { height: 2, width: 32, backgroundColor: ORANGE, marginBottom: 8 },
   row: { flexDirection: "row" },
-  label: { color: "#666666", width: 90 },
+  label: { color: MUTED, width: 90 },
   value: { flex: 1 },
+  concept: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 4,
+    padding: 12,
+    fontSize: 9.5,
+    lineHeight: 1.5,
+    color: TEXT,
+  },
   table: { display: "flex", width: "100%", marginTop: 4 },
-  tableRow: { flexDirection: "row", borderBottom: "1 solid #eeeeee", paddingVertical: 6 },
+  tableRow: { flexDirection: "row", borderBottom: "1 solid #E2E8F0", paddingVertical: 7 },
   tableHeaderRow: {
     flexDirection: "row",
-    borderBottom: "1 solid #254b8a",
+    borderBottom: `1.5 solid ${NAVY}`,
     paddingBottom: 6,
     fontWeight: 700,
-    color: "#254b8a",
+    color: NAVY,
   },
   colDesc: { flex: 3 },
   colQty: { flex: 1, textAlign: "right" },
-  colPrice: { flex: 1, textAlign: "right" },
-  tierPrice: { fontWeight: 700, color: "#254b8a" },
-  footer: { marginTop: 24, paddingTop: 12, borderTop: "1 solid #eeeeee", fontSize: 9, color: "#666666" },
+  colUnit: { flex: 1.2, textAlign: "right" },
+  colTotal: { flex: 1.2, textAlign: "right", fontWeight: 700 },
+  tierPrice: { fontWeight: 700, color: CYAN },
+  footer: {
+    marginTop: 8,
+    paddingTop: 14,
+    borderTop: "1 solid #E2E8F0",
+    fontSize: 9,
+    color: MUTED,
+  },
+  investmentBox: {
+    marginTop: 4,
+    padding: 12,
+    backgroundColor: "#FFF7ED",
+    borderRadius: 4,
+    borderLeft: `3 solid ${ORANGE}`,
+  },
 });
 
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString("es-UY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export interface QuoteLine {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
 
 export interface QuotePdfData {
   quoteNumber: string | null;
@@ -38,16 +95,18 @@ export interface QuotePdfData {
   validUntil: string | null;
   deliveryEstimateDate: string | null;
   notes: string | null;
-  items: {
-    description: string;
-    quantity: number;
-    basePrice: number;
-  }[];
+  projectSummary: string | null;
+  items: QuoteLine[];
+  extras: QuoteLine[];
   tiers: {
     minQty: number;
     maxQty: number | null;
     unitPrice: number;
   }[];
+  showTiers: boolean;
+  showExtras: boolean;
+  showProjectSummary: boolean;
+  showNotes: boolean;
   legalText: string;
   paymentTerms: string;
   leadTimeText: string;
@@ -56,6 +115,27 @@ export interface QuotePdfData {
   companyRut: string;
   companyAddress: string;
   companyPhone: string;
+}
+
+function LinesTable({ lines }: { lines: QuoteLine[] }) {
+  return (
+    <View style={styles.table}>
+      <View style={styles.tableHeaderRow}>
+        <Text style={styles.colDesc}>Descripción</Text>
+        <Text style={styles.colQty}>Cantidad</Text>
+        <Text style={styles.colUnit}>Precio unitario</Text>
+        <Text style={styles.colTotal}>Total</Text>
+      </View>
+      {lines.map((line, i) => (
+        <View style={styles.tableRow} key={i}>
+          <Text style={styles.colDesc}>{line.description}</Text>
+          <Text style={styles.colQty}>{line.quantity}</Text>
+          <Text style={styles.colUnit}>{formatCurrency(line.unitPrice)}</Text>
+          <Text style={styles.colTotal}>{formatCurrency(line.totalPrice)}</Text>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
@@ -77,94 +157,113 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           )}
           <Text style={styles.subBrand}>Diseño e Impresión 3D — Montevideo, Uruguay</Text>
           {companyLine && <Text style={styles.subBrand}>{companyLine}</Text>}
-          <Text style={styles.quoteNumber}>Presupuesto {data.quoteNumber ?? ""}</Text>
+          <Text style={styles.quoteNumber}>PROPUESTA COMERCIAL DE DISEÑO — {data.quoteNumber ?? ""}</Text>
         </View>
+        <View style={styles.headerAccent} />
 
-        <View style={styles.section}>
-          <View style={styles.row}>
-            <Text style={styles.label}>Cliente</Text>
-            <Text style={styles.value}>{data.clientName}</Text>
-          </View>
-          {data.clientContact && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Contacto</Text>
-              <Text style={styles.value}>{data.clientContact}</Text>
-            </View>
-          )}
-          <View style={styles.row}>
-            <Text style={styles.label}>Fecha</Text>
-            <Text style={styles.value}>{data.createdAt}</Text>
-          </View>
-          {data.validUntil && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Válido hasta</Text>
-              <Text style={styles.value}>{data.validUntil}</Text>
-            </View>
-          )}
-          {data.deliveryEstimateDate && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Entrega estimada</Text>
-              <Text style={styles.value}>{data.deliveryEstimateDate}</Text>
-            </View>
-          )}
-        </View>
-
-        {data.items.length > 0 && (
+        <View style={styles.body}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Producto(s)</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeaderRow}>
-                <Text style={styles.colDesc}>Descripción</Text>
-                <Text style={styles.colQty}>Cantidad</Text>
-                <Text style={styles.colPrice}>Precio unitario</Text>
-              </View>
-              {data.items.map((item, i) => (
-                <View style={styles.tableRow} key={i}>
-                  <Text style={styles.colDesc}>{item.description}</Text>
-                  <Text style={styles.colQty}>{item.quantity}</Text>
-                  <Text style={styles.colPrice}>{formatCurrency(item.basePrice)}</Text>
-                </View>
-              ))}
+            <View style={styles.row}>
+              <Text style={styles.label}>Cliente</Text>
+              <Text style={styles.value}>{data.clientName}</Text>
             </View>
-          </View>
-        )}
-
-        {data.tiers.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Precios por cantidad</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeaderRow}>
-                <Text style={styles.colDesc}>Cantidad</Text>
-                <Text style={styles.colPrice}>Precio unitario</Text>
+            {data.clientContact && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Contacto</Text>
+                <Text style={styles.value}>{data.clientContact}</Text>
               </View>
-              {data.tiers.map((tier, i) => (
-                <View style={styles.tableRow} key={i}>
-                  <Text style={styles.colDesc}>
-                    {tier.maxQty ? `${tier.minQty} - ${tier.maxQty} unidades` : `${tier.minQty}+ unidades`}
-                  </Text>
-                  <Text style={[styles.colPrice, styles.tierPrice]}>
-                    {formatCurrency(tier.unitPrice)}
-                  </Text>
-                </View>
-              ))}
+            )}
+            <View style={styles.row}>
+              <Text style={styles.label}>Fecha</Text>
+              <Text style={styles.value}>{data.createdAt}</Text>
             </View>
-            {data.ivaPct > 0 && (
-              <Text style={[styles.subBrand, { marginTop: 4 }]}>Precios + IVA ({data.ivaPct}%)</Text>
+            {data.validUntil && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Válido hasta</Text>
+                <Text style={styles.value}>{data.validUntil}</Text>
+              </View>
+            )}
+            {data.deliveryEstimateDate && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Entrega estimada</Text>
+                <Text style={styles.value}>{data.deliveryEstimateDate}</Text>
+              </View>
             )}
           </View>
-        )}
 
-        {data.notes && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notas</Text>
-            <Text>{data.notes}</Text>
+          {data.showProjectSummary && data.projectSummary && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Concepto del proyecto</Text>
+              <View style={styles.sectionAccentLine} />
+              <View style={styles.concept}>
+                <Text>{data.projectSummary}</Text>
+              </View>
+            </View>
+          )}
+
+          {data.items.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Inversión del proyecto</Text>
+              <View style={styles.sectionAccentLine} />
+              <LinesTable lines={data.items} />
+            </View>
+          )}
+
+          {data.showExtras && data.extras.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Adicionales</Text>
+              <View style={styles.sectionAccentLine} />
+              <LinesTable lines={data.extras} />
+            </View>
+          )}
+
+          {data.showTiers && data.tiers.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Precios por cantidad</Text>
+              <View style={styles.sectionAccentLine} />
+              <View style={styles.table}>
+                <View style={styles.tableHeaderRow}>
+                  <Text style={styles.colDesc}>Cantidad</Text>
+                  <Text style={styles.colUnit}>Precio unitario</Text>
+                </View>
+                {data.tiers.map((tier, i) => (
+                  <View style={styles.tableRow} key={i}>
+                    <Text style={styles.colDesc}>
+                      {tier.maxQty ? `${tier.minQty} - ${tier.maxQty} unidades` : `${tier.minQty}+ unidades`}
+                    </Text>
+                    <Text style={[styles.colUnit, styles.tierPrice]}>
+                      {formatCurrency(tier.unitPrice)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              {data.ivaPct > 0 && (
+                <Text style={[styles.subBrand, { color: MUTED, marginTop: 4 }]}>
+                  Precios + IVA ({data.ivaPct}%)
+                </Text>
+              )}
+            </View>
+          )}
+
+          {data.showNotes && data.notes && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Notas</Text>
+              <View style={styles.sectionAccentLine} />
+              <Text>{data.notes}</Text>
+            </View>
+          )}
+
+          {data.paymentTerms && (
+            <View style={styles.investmentBox}>
+              <Text style={{ fontWeight: 700, color: NAVY, marginBottom: 3 }}>Fases de pago</Text>
+              <Text>{data.paymentTerms}</Text>
+            </View>
+          )}
+
+          <View style={styles.footer}>
+            {data.leadTimeText && <Text>Tiempo de entrega: {data.leadTimeText}</Text>}
+            {data.legalText && <Text style={{ marginTop: 3 }}>{data.legalText}</Text>}
           </View>
-        )}
-
-        <View style={styles.footer}>
-          {data.leadTimeText && <Text>Tiempo de entrega: {data.leadTimeText}</Text>}
-          {data.paymentTerms && <Text>Forma de pago: {data.paymentTerms}</Text>}
-          {data.legalText && <Text>{data.legalText}</Text>}
         </View>
       </Page>
     </Document>

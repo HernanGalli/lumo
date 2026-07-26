@@ -8,6 +8,9 @@ import { deleteFromBucket, uploadToBucket } from "@/lib/supabase/storage";
 
 const bannerSchema = z.object({
   mediaType: z.enum(["image", "video"]),
+  pageTarget: z.enum(["home", "empresas"]).default("home"),
+  headline: z.string().trim().max(200).optional().or(z.literal("")),
+  bodyText: z.string().trim().max(600).optional().or(z.literal("")),
   ctaText: z.string().trim().max(120).optional().or(z.literal("")),
   ctaUrl: z.string().trim().max(500).optional().or(z.literal("")),
   isActive: z.coerce.boolean().optional(),
@@ -18,6 +21,9 @@ const bannerSchema = z.object({
 function parseBannerForm(formData: FormData) {
   return bannerSchema.parse({
     mediaType: formData.get("mediaType"),
+    pageTarget: formData.get("pageTarget") || "home",
+    headline: formData.get("headline") || "",
+    bodyText: formData.get("bodyText") || "",
     ctaText: formData.get("ctaText") || "",
     ctaUrl: formData.get("ctaUrl") || "",
     isActive: formData.get("isActive") === "on",
@@ -51,6 +57,9 @@ export async function createBanner(formData: FormData) {
 
   const { error } = await supabase.from("banners").insert({
     media_type: parsed.mediaType,
+    page_target: parsed.pageTarget,
+    headline: parsed.headline || null,
+    body_text: parsed.bodyText || null,
     storage_path: storagePath,
     poster_storage_path: posterStoragePath,
     cta_text: parsed.ctaText || null,
@@ -97,6 +106,9 @@ export async function updateBanner(formData: FormData) {
     .from("banners")
     .update({
       media_type: parsed.mediaType,
+      page_target: parsed.pageTarget,
+      headline: parsed.headline || null,
+      body_text: parsed.bodyText || null,
       storage_path: storagePath,
       poster_storage_path: posterStoragePath,
       cta_text: parsed.ctaText || null,

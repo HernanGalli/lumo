@@ -21,6 +21,17 @@ export default async function NuevoPresupuestoPage() {
 
       <form action={createQuote} className="rounded-lg border border-border bg-surface p-6 flex flex-col gap-4">
         <div>
+          <label className={labelClass} htmlFor="projectLabel">
+            Proyecto (arma el código, ej. &quot;Llaveros&quot;, &quot;Cuadros&quot;)
+          </label>
+          <input
+            id="projectLabel"
+            name="projectLabel"
+            placeholder="Proyecto"
+            className={inputClass}
+          />
+        </div>
+        <div>
           <label className={labelClass} htmlFor="clientName">
             Cliente
           </label>

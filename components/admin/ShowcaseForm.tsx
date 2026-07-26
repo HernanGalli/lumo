@@ -12,6 +12,7 @@ interface ShowcaseFormProps {
     description: string | null;
     category_id: string | null;
     status: string;
+    show_on_home: boolean;
   };
   submitLabel: string;
 }
@@ -78,6 +79,11 @@ export function ShowcaseForm({ action, categories, post, submitLabel }: Showcase
           <option value="draft">Borrador</option>
         </select>
       </div>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="showOnHome" defaultChecked={post?.show_on_home ?? false} />
+        Mostrar en el Muro de Trabajos Reales del Home
+      </label>
 
       <button
         type="submit"

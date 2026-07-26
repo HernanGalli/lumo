@@ -10,6 +10,7 @@ interface PostRow {
   status: string;
   categoryName: string | null;
   thumbUrl: string | null;
+  showOnHome: boolean;
 }
 
 export function ShowcaseReorderList({ posts }: { posts: PostRow[] }) {
@@ -33,6 +34,11 @@ export function ShowcaseReorderList({ posts }: { posts: PostRow[] }) {
                 {post.status === "draft" && (
                   <span className="ml-2 rounded-full bg-background-secundario px-2 py-0.5 text-xs text-foreground-muted">
                     Borrador
+                  </span>
+                )}
+                {post.showOnHome && (
+                  <span className="ml-2 rounded-full bg-amarillo/20 px-2 py-0.5 text-xs text-amarillo">
+                    En Home
                   </span>
                 )}
               </p>

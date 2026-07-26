@@ -5,9 +5,12 @@ import { settingsRowsToMap } from "@/lib/settings";
 import { regenerateTiers, updateQuoteTierPrice } from "@/lib/actions/quotes";
 import { sendQuoteEmail } from "@/lib/actions/gmail";
 import { isGmailConnected } from "@/lib/gmail/client";
+import { buildQuotePdfData } from "@/lib/pdf/buildQuoteData";
 import { QuoteItemsSection } from "@/components/admin/QuoteItemsSection";
 import { QuoteExportPanel } from "@/components/admin/QuoteExportPanel";
 import { QuoteStatusSelect } from "@/components/admin/QuoteStatusSelect";
+import { QuoteDetailsForm } from "@/components/admin/QuoteDetailsForm";
+import { QuotePdfOptionsForm } from "@/components/admin/QuotePdfOptionsForm";
 
 export default async function PresupuestoDetailPage({
   params,
@@ -51,35 +54,14 @@ export default async function PresupuestoDetailPage({
   const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
   const suggestedBasePrice = items?.[0]?.base_unit_price ?? 0;
   const logoUrl = getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null);
-  const ivaPct = Number(settings.iva_pct ?? 0);
 
-  const previewData = {
-    quoteNumber: quote.quote_number,
-    clientName: quote.client_name,
-    clientContact: quote.client_contact,
-    createdAtLabel: new Date(quote.created_at).toLocaleDateString("es-UY"),
-    validUntil: quote.valid_until,
-    deliveryEstimateDate: quote.delivery_estimate_date,
-    notes: quote.notes,
-    items: (items ?? []).map((item) => ({
-      description: item.description ?? "Ítem",
-      quantity: item.quantity,
-      basePrice: item.base_unit_price,
-    })),
-    tiers: (tiers ?? []).map((tier) => ({
-      minQty: tier.min_qty,
-      maxQty: tier.max_qty,
-      unitPrice: tier.unit_price,
-    })),
-    legalText: (settings.quote_legal_text as string) ?? "",
-    paymentTerms: (settings.quote_payment_terms as string) ?? "",
-    leadTimeText: (settings.quote_lead_time_text as string) ?? "",
+  const previewData = buildQuotePdfData({
+    quote,
+    items: items ?? [],
+    tiers: tiers ?? [],
+    settings,
     logoUrl,
-    ivaPct,
-    companyRut: (settings.company_rut as string) ?? "",
-    companyAddress: (settings.company_address as string) ?? "",
-    companyPhone: (settings.company_phone as string) ?? "",
-  };
+  });
 
   return (
     <div className="max-w-4xl flex flex-col gap-8">
@@ -96,6 +78,8 @@ export default async function PresupuestoDetailPage({
         </p>
       </div>
 
+      <QuoteDetailsForm quote={quote} />
+
       <QuoteItemsSection
         quoteId={quote.id}
         items={items ?? []}
@@ -103,6 +87,8 @@ export default async function PresupuestoDetailPage({
         printers={printers ?? []}
         defaultMargenPct={quote.margin_pct ?? defaultMargenPct}
       />
+
+      <QuotePdfOptionsForm quote={quote} />
 
       <section className="rounded-lg border border-border bg-surface p-6">
         <h2 className="font-medium mb-1">Precios por cantidad</h2>

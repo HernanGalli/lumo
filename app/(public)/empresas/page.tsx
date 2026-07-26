@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getPublicUrl } from "@/lib/supabase/storage";
+import { isBannerActiveNow } from "@/lib/banners";
 import { HeroCorporativo } from "@/components/public/empresas/HeroCorporativo";
+import { PromoBanner } from "@/components/public/empresas/PromoBanner";
 import { PilaresGrid } from "@/components/public/empresas/PilaresGrid";
 import { SolucionesCatalogo, type SolucionGrupo } from "@/components/public/empresas/SolucionesCatalogo";
 import { ClientLogosCarousel } from "@/components/public/empresas/ClientLogosCarousel";
@@ -24,13 +26,30 @@ export const metadata = {
 export default async function EmpresasPage() {
   const supabase = await createClient();
 
-  const [{ data: categories }, { data: logoRows }] = await Promise.all([
+  const [{ data: categories }, { data: logoRows }, { data: bannerRows }] = await Promise.all([
     supabase
       .from("categories")
       .select("id, slug")
       .in("slug", B2B_CATEGORY_SLUGS.map((c) => c.slug)),
     supabase.from("client_logos").select("id, name, storage_path").order("sort_order", { ascending: true }),
+    supabase
+      .from("banners")
+      .select("id, headline, body_text, cta_text, cta_url, is_active, starts_at, ends_at")
+      .eq("is_active", true)
+      .eq("page_target", "empresas")
+      .order("sort_order", { ascending: true }),
   ]);
+
+  const activeBanner = (bannerRows ?? []).filter(isBannerActiveNow)[0] ?? null;
+  const promoBanner = activeBanner
+    ? {
+        id: activeBanner.id,
+        headline: activeBanner.headline,
+        bodyText: activeBanner.body_text,
+        ctaText: activeBanner.cta_text,
+        ctaUrl: activeBanner.cta_url,
+      }
+    : null;
 
   const categoryIdBySlug = new Map((categories ?? []).map((c) => [c.slug, c.id as string]));
   const categoryIds = [...categoryIdBySlug.values()];
@@ -82,6 +101,7 @@ export default async function EmpresasPage() {
 
   return (
     <>
+      <PromoBanner banner={promoBanner} />
       <HeroCorporativo />
       <FadeInSection>
         <PilaresGrid />

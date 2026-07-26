@@ -1,23 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useModal } from "@/components/public/modal-context";
 
 export interface HeroBanner {
   id: string;
   mediaType: "video" | "image";
   url: string;
   posterUrl: string | null;
-  ctaText: string | null;
-  ctaUrl: string | null;
+  headline: string | null;
+  bodyText: string | null;
 }
 
 const SLIDE_DURATION = 5000;
 
+const DEFAULT_HEADLINE = "La identidad de tu cuadro o tu marca, en la palma de la mano.";
+const DEFAULT_BODY =
+  "Transformamos escudos, logos e ideas en llaveros y merchandising 3D en alta definición. " +
+  "Calidad prolija que se nota y se toca, sin mínimos disparatados.";
+
 export function HeroSlider({ banners }: { banners: HeroBanner[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
-  const { openContact } = useModal();
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -63,24 +66,15 @@ export function HeroSlider({ banners }: { banners: HeroBanner[] }) {
         ))}
       </div>
       <div className="hero__contenedor contenedor">
-        <h1 className="hero__titulo">
-          Diseño que ilumina. <br />
-          Ideas que toman forma.
-        </h1>
-        <p className="hero__parrafo">Piezas únicas de impresión 3D para tu hogar y negocio.</p>
+        <h1 className="hero__titulo">{activeBanner?.headline || DEFAULT_HEADLINE}</h1>
+        <p className="hero__parrafo">{activeBanner?.bodyText || DEFAULT_BODY}</p>
         <div className="hero__botones">
-          <a href="#catalogo" className="boton">
-            Explorar Diseños
+          <a href="#proceso" className="boton">
+            Crear mi llavero personalizado
           </a>
-          {activeBanner?.ctaUrl ? (
-            <a href={activeBanner.ctaUrl} className="boton boton--outline">
-              {activeBanner.ctaText || "Cotiza tu Proyecto"}
-            </a>
-          ) : (
-            <button type="button" className="boton boton--outline" onClick={openContact}>
-              {activeBanner?.ctaText || "Cotiza tu Proyecto"}
-            </button>
-          )}
+          <a href="/empresas" className="boton boton--outline">
+            Pedir cotización
+          </a>
         </div>
       </div>
     </section>

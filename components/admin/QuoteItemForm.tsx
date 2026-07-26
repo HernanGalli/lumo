@@ -22,6 +22,7 @@ export interface ExistingQuoteItem {
   tiempo_diseno_horas: number | null;
   base_unit_price: number;
   quantity: number;
+  item_type: "producto" | "extra";
 }
 
 export function QuoteItemForm({
@@ -44,6 +45,7 @@ export function QuoteItemForm({
   const [mode, setMode] = useState<"calculado" | "manual">(
     item && !item.material_id ? "manual" : "calculado"
   );
+  const [itemType, setItemType] = useState<"producto" | "extra">(item?.item_type ?? "producto");
 
   const inputClass =
     "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azul";
@@ -54,6 +56,7 @@ export function QuoteItemForm({
       <h2 className="font-medium mb-4">{item ? "Editar ítem" : "Agregar ítem"}</h2>
       <input type="hidden" name="quoteId" value={quoteId} />
       <input type="hidden" name="mode" value={mode} />
+      <input type="hidden" name="itemType" value={itemType} />
       {item && <input type="hidden" name="id" value={item.id} />}
 
       <div className="flex gap-2 mb-4">
@@ -70,6 +73,23 @@ export function QuoteItemForm({
           className={`rounded-md px-3 py-1.5 text-sm ${mode === "manual" ? "bg-azul text-white" : "border border-border text-foreground-muted"}`}
         >
           Precio manual
+        </button>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setItemType("producto")}
+          className={`rounded-md px-3 py-1.5 text-sm ${itemType === "producto" ? "bg-azul-claro text-white" : "border border-border text-foreground-muted"}`}
+        >
+          Producto
+        </button>
+        <button
+          type="button"
+          onClick={() => setItemType("extra")}
+          className={`rounded-md px-3 py-1.5 text-sm ${itemType === "extra" ? "bg-azul-claro text-white" : "border border-border text-foreground-muted"}`}
+        >
+          Adicional (aros, embalaje, envío)
         </button>
       </div>
 
