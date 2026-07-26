@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicUrl } from "@/lib/supabase/storage";
 import { settingsRowsToMap } from "@/lib/settings";
-import { deleteQuoteItem, regenerateTiers, updateQuoteTierPrice } from "@/lib/actions/quotes";
-import { AddQuoteItemForm } from "@/components/admin/AddQuoteItemForm";
+import { regenerateTiers, updateQuoteTierPrice } from "@/lib/actions/quotes";
+import { sendQuoteEmail } from "@/lib/actions/gmail";
+import { isGmailConnected } from "@/lib/gmail/client";
+import { QuoteItemsSection } from "@/components/admin/QuoteItemsSection";
 import { QuoteExportPanel } from "@/components/admin/QuoteExportPanel";
 import { QuoteStatusSelect } from "@/components/admin/QuoteStatusSelect";
-
-const formatoMoneda = new Intl.NumberFormat("es-UY", { style: "currency", currency: "UYU" });
 
 export default async function PresupuestoDetailPage({
   params,
@@ -23,6 +24,8 @@ export default async function PresupuestoDetailPage({
     { data: materials },
     { data: printers },
     { data: settingsRows },
+    gmailStatus,
+    { data: emailLog },
   ] = await Promise.all([
     supabase.from("quotes").select("*").eq("id", id).single(),
     supabase.from("quote_items").select("*").eq("quote_id", id).order("sort_order"),
@@ -34,6 +37,12 @@ export default async function PresupuestoDetailPage({
     supabase.from("materials").select("id, name").order("name"),
     supabase.from("printers").select("id, name").order("name"),
     supabase.from("settings").select("key, value"),
+    isGmailConnected(),
+    supabase
+      .from("email_log")
+      .select("id, to_email, subject, status, sent_at")
+      .eq("quote_id", id)
+      .order("sent_at", { ascending: false }),
   ]);
 
   if (!quote) notFound();
@@ -41,6 +50,8 @@ export default async function PresupuestoDetailPage({
   const settings = settingsRowsToMap(settingsRows ?? []);
   const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
   const suggestedBasePrice = items?.[0]?.base_unit_price ?? 0;
+  const logoUrl = getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null);
+  const ivaPct = Number(settings.iva_pct ?? 0);
 
   const previewData = {
     quoteNumber: quote.quote_number,
@@ -63,6 +74,11 @@ export default async function PresupuestoDetailPage({
     legalText: (settings.quote_legal_text as string) ?? "",
     paymentTerms: (settings.quote_payment_terms as string) ?? "",
     leadTimeText: (settings.quote_lead_time_text as string) ?? "",
+    logoUrl,
+    ivaPct,
+    companyRut: (settings.company_rut as string) ?? "",
+    companyAddress: (settings.company_address as string) ?? "",
+    companyPhone: (settings.company_phone as string) ?? "",
   };
 
   return (
@@ -80,40 +96,9 @@ export default async function PresupuestoDetailPage({
         </p>
       </div>
 
-      <section className="rounded-lg border border-border bg-surface p-6">
-        <h2 className="font-medium mb-4">Ítems</h2>
-        <div className="flex flex-col gap-2 mb-2">
-          {(items ?? []).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-2 text-sm"
-            >
-              <div>
-                <p>{item.description ?? "Ítem"}</p>
-                <p className="text-xs text-foreground-muted">
-                  Cantidad: {item.quantity} · Costo total: {formatoMoneda.format(item.costo_total)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-medium">{formatoMoneda.format(item.base_unit_price)}</span>
-                <form action={deleteQuoteItem}>
-                  <input type="hidden" name="id" value={item.id} />
-                  <input type="hidden" name="quoteId" value={quote.id} />
-                  <button type="submit" className="text-xs text-rojo hover:underline">
-                    Borrar
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
-          {(items ?? []).length === 0 && (
-            <p className="text-sm text-foreground-muted">Todavía no hay ítems.</p>
-          )}
-        </div>
-      </section>
-
-      <AddQuoteItemForm
+      <QuoteItemsSection
         quoteId={quote.id}
+        items={items ?? []}
         materials={materials ?? []}
         printers={printers ?? []}
         defaultMargenPct={quote.margin_pct ?? defaultMargenPct}
@@ -192,6 +177,62 @@ export default async function PresupuestoDetailPage({
       <section>
         <h2 className="font-medium mb-4">Exportar</h2>
         <QuoteExportPanel quoteId={quote.id} data={previewData} />
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-6">
+        <h2 className="font-medium mb-1">Enviar por mail</h2>
+        {gmailStatus.connected ? (
+          <>
+            <p className="text-sm text-foreground-muted mb-4">
+              Se manda como PDF adjunto desde {gmailStatus.email}.
+            </p>
+            <form action={sendQuoteEmail} className="flex flex-wrap items-end gap-3">
+              <input type="hidden" name="quoteId" value={quote.id} />
+              <div>
+                <label className="block text-xs text-foreground-muted mb-1" htmlFor="toEmail">
+                  Email del cliente
+                </label>
+                <input
+                  id="toEmail"
+                  name="toEmail"
+                  type="email"
+                  required
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-md bg-azul px-4 py-2 text-sm text-white font-medium hover:bg-azul-claro transition-colors"
+              >
+                Enviar
+              </button>
+            </form>
+          </>
+        ) : (
+          <p className="text-sm text-foreground-muted">
+            Conectá Gmail en{" "}
+            <a href="/admin/configuracion" className="text-azul hover:underline">
+              Configuración
+            </a>{" "}
+            para poder mandar el presupuesto por mail.
+          </p>
+        )}
+
+        {(emailLog ?? []).length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-1.5">
+            <p className="text-xs text-foreground-muted mb-1">Historial</p>
+            {(emailLog ?? []).map((log) => (
+              <div key={log.id} className="flex items-center justify-between text-xs">
+                <span>
+                  {log.to_email} · {new Date(log.sent_at).toLocaleString("es-UY")}
+                </span>
+                <span className={log.status === "sent" ? "text-green-600" : "text-rojo"}>
+                  {log.status === "sent" ? "Enviado" : "Falló"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

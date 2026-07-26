@@ -1,8 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 const WHATSAPP_NUMBER = "59898753757";
 const DEFAULT_MESSAGE = "Hola! Quiero consultar por...";
+const CORPORATE_MESSAGE =
+  "Hola LUMO, me interesa solicitar un presupuesto o kit de muestras para mi empresa...";
 
 export function WhatsAppBubble() {
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;
+  const pathname = usePathname();
+  const message = pathname?.startsWith("/empresas") ? CORPORATE_MESSAGE : DEFAULT_MESSAGE;
+  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
   return (
     <a

@@ -93,8 +93,57 @@ export async function updateQuoteStatus(formData: FormData) {
   const { error } = await supabase.from("quotes").update({ status }).eq("id", id);
   if (error) throw new Error(error.message);
 
+  if (status === "aceptado") {
+    await deductStockIfNeeded(supabase, id);
+  }
+
   revalidatePath(`/admin/presupuestos/${id}`);
   revalidatePath("/admin/presupuestos");
+  revalidatePath("/admin/materiales");
+}
+
+// Descuenta el stock de materiales cuando un presupuesto se acepta, una sola
+// vez por presupuesto (stock_deducted evita el doble descuento si se
+// cancela y se vuelve a aceptar).
+async function deductStockIfNeeded(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  quoteId: string
+) {
+  const { data: quote } = await supabase
+    .from("quotes")
+    .select("stock_deducted")
+    .eq("id", quoteId)
+    .single();
+  if (!quote || quote.stock_deducted) return;
+
+  const { data: items } = await supabase
+    .from("quote_items")
+    .select("material_id, peso_gramos, quantity")
+    .eq("quote_id", quoteId)
+    .not("material_id", "is", null);
+
+  const gramsByMaterial = new Map<string, number>();
+  for (const item of items ?? []) {
+    if (!item.material_id) continue;
+    const grams = (item.peso_gramos ?? 0) * item.quantity;
+    gramsByMaterial.set(item.material_id, (gramsByMaterial.get(item.material_id) ?? 0) + grams);
+  }
+
+  for (const [materialId, grams] of gramsByMaterial) {
+    if (grams <= 0) continue;
+    const { data: material } = await supabase
+      .from("materials")
+      .select("quantity_on_hand")
+      .eq("id", materialId)
+      .single();
+    if (!material) continue;
+    await supabase
+      .from("materials")
+      .update({ quantity_on_hand: Math.max(0, material.quantity_on_hand - grams) })
+      .eq("id", materialId);
+  }
+
+  await supabase.from("quotes").update({ stock_deducted: true }).eq("id", quoteId);
 }
 
 const addItemSchema = z.object({
@@ -111,44 +160,32 @@ const addItemSchema = z.object({
   basePriceManual: z.coerce.number().min(0).max(100_000_000).optional(),
 });
 
-export async function addQuoteItem(formData: FormData) {
-  const supabase = await createClient();
-  const parsed = addItemSchema.parse({
-    quoteId: formData.get("quoteId"),
-    mode: formData.get("mode"),
-    description: formData.get("description") || "",
-    quantity: formData.get("quantity") || 1,
-    materialId: formData.get("materialId") || "",
-    printerId: formData.get("printerId") || "",
-    pesoGramos: formData.get("pesoGramos") || undefined,
-    tiempoHoras: formData.get("tiempoHoras") || undefined,
-    tiempoDisenoHoras: formData.get("tiempoDisenoHoras") || undefined,
-    margenPct: formData.get("margenPct") || undefined,
-    basePriceManual: formData.get("basePriceManual") || undefined,
-  });
+type QuoteItemFields = {
+  quote_id: string;
+  product_id: null;
+  description: string | null;
+  peso_gramos: number | null;
+  tiempo_horas: number | null;
+  material_id: string | null;
+  printer_id: string | null;
+  tiempo_diseno_horas: number | null;
+  costo_material: number;
+  costo_energia: number;
+  costo_mano_obra: number;
+  costo_total: number;
+  base_unit_price: number;
+  quantity: number;
+};
 
-  let item: {
-    quote_id: string;
-    product_id: null;
-    description: string | null;
-    peso_gramos: number | null;
-    tiempo_horas: number | null;
-    material_id: string | null;
-    printer_id: string | null;
-    tiempo_diseno_horas: number | null;
-    costo_material: number;
-    costo_energia: number;
-    costo_mano_obra: number;
-    costo_total: number;
-    base_unit_price: number;
-    quantity: number;
-  };
-
+async function buildQuoteItemFields(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  parsed: z.infer<typeof addItemSchema>
+): Promise<QuoteItemFields> {
   if (parsed.mode === "manual") {
     if (!parsed.basePriceManual) {
       throw new Error("Ingresá un precio manual");
     }
-    item = {
+    return {
       quote_id: parsed.quoteId,
       product_id: null,
       description: parsed.description || "Ítem manual",
@@ -164,57 +201,88 @@ export async function addQuoteItem(formData: FormData) {
       base_unit_price: round2(parsed.basePriceManual),
       quantity: parsed.quantity,
     };
-  } else {
-    if (!parsed.materialId || !parsed.printerId) {
-      throw new Error("Elegí material e impresora");
-    }
-
-    const [{ data: material }, { data: printer }, { data: settingsRows }] = await Promise.all([
-      supabase.from("materials").select("cost_per_kg").eq("id", parsed.materialId).single(),
-      supabase.from("printers").select("watts").eq("id", parsed.printerId).single(),
-      supabase.from("settings").select("key, value"),
-    ]);
-
-    if (!material || !printer) throw new Error("Material o impresora no encontrados");
-
-    const settings = settingsRowsToMap(settingsRows ?? []);
-    const tarifaUteKwh = Number(settings.ute_tariff_kwh ?? 0);
-    const defaultValorHora = Number(settings.labor_hourly_rate ?? 0);
-    const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
-
-    const breakdown = calcCostoBreakdown({
-      pesoGramos: parsed.pesoGramos ?? 0,
-      costoPorKg: material.cost_per_kg,
-      tiempoHoras: parsed.tiempoHoras ?? 0,
-      consumoWatts: printer.watts,
-      tarifaUteKwh,
-      tiempoDisenoHoras: parsed.tiempoDisenoHoras ?? 0,
-      valorHora: defaultValorHora,
-    });
-    const basePrice = calcPrecioSugerido(
-      breakdown.costoTotal,
-      parsed.margenPct ?? defaultMargenPct
-    );
-
-    item = {
-      quote_id: parsed.quoteId,
-      product_id: null,
-      description: parsed.description || null,
-      peso_gramos: parsed.pesoGramos ?? null,
-      tiempo_horas: parsed.tiempoHoras ?? null,
-      material_id: parsed.materialId,
-      printer_id: parsed.printerId,
-      tiempo_diseno_horas: parsed.tiempoDisenoHoras ?? null,
-      costo_material: round2(breakdown.costoMaterial),
-      costo_energia: round2(breakdown.costoEnergia),
-      costo_mano_obra: round2(breakdown.costoManoObra),
-      costo_total: round2(breakdown.costoTotal),
-      base_unit_price: round2(basePrice),
-      quantity: parsed.quantity,
-    };
   }
 
+  if (!parsed.materialId || !parsed.printerId) {
+    throw new Error("Elegí material e impresora");
+  }
+
+  const [{ data: material }, { data: printer }, { data: settingsRows }] = await Promise.all([
+    supabase.from("materials").select("cost_per_kg").eq("id", parsed.materialId).single(),
+    supabase.from("printers").select("watts").eq("id", parsed.printerId).single(),
+    supabase.from("settings").select("key, value"),
+  ]);
+
+  if (!material || !printer) throw new Error("Material o impresora no encontrados");
+
+  const settings = settingsRowsToMap(settingsRows ?? []);
+  const tarifaUteKwh = Number(settings.ute_tariff_kwh ?? 0);
+  const defaultValorHora = Number(settings.labor_hourly_rate ?? 0);
+  const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
+
+  const breakdown = calcCostoBreakdown({
+    pesoGramos: parsed.pesoGramos ?? 0,
+    costoPorKg: material.cost_per_kg,
+    tiempoHoras: parsed.tiempoHoras ?? 0,
+    consumoWatts: printer.watts,
+    tarifaUteKwh,
+    tiempoDisenoHoras: parsed.tiempoDisenoHoras ?? 0,
+    valorHora: defaultValorHora,
+  });
+  const basePrice = calcPrecioSugerido(breakdown.costoTotal, parsed.margenPct ?? defaultMargenPct);
+
+  return {
+    quote_id: parsed.quoteId,
+    product_id: null,
+    description: parsed.description || null,
+    peso_gramos: parsed.pesoGramos ?? null,
+    tiempo_horas: parsed.tiempoHoras ?? null,
+    material_id: parsed.materialId,
+    printer_id: parsed.printerId,
+    tiempo_diseno_horas: parsed.tiempoDisenoHoras ?? null,
+    costo_material: round2(breakdown.costoMaterial),
+    costo_energia: round2(breakdown.costoEnergia),
+    costo_mano_obra: round2(breakdown.costoManoObra),
+    costo_total: round2(breakdown.costoTotal),
+    base_unit_price: round2(basePrice),
+    quantity: parsed.quantity,
+  };
+}
+
+function parseItemForm(formData: FormData) {
+  return addItemSchema.parse({
+    quoteId: formData.get("quoteId"),
+    mode: formData.get("mode"),
+    description: formData.get("description") || "",
+    quantity: formData.get("quantity") || 1,
+    materialId: formData.get("materialId") || "",
+    printerId: formData.get("printerId") || "",
+    pesoGramos: formData.get("pesoGramos") || undefined,
+    tiempoHoras: formData.get("tiempoHoras") || undefined,
+    tiempoDisenoHoras: formData.get("tiempoDisenoHoras") || undefined,
+    margenPct: formData.get("margenPct") || undefined,
+    basePriceManual: formData.get("basePriceManual") || undefined,
+  });
+}
+
+export async function addQuoteItem(formData: FormData) {
+  const supabase = await createClient();
+  const parsed = parseItemForm(formData);
+  const item = await buildQuoteItemFields(supabase, parsed);
+
   const { error } = await supabase.from("quote_items").insert(item);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/presupuestos/${parsed.quoteId}`);
+}
+
+export async function updateQuoteItem(formData: FormData) {
+  const supabase = await createClient();
+  const id = z.string().uuid().parse(formData.get("id"));
+  const parsed = parseItemForm(formData);
+  const item = await buildQuoteItemFields(supabase, parsed);
+
+  const { error } = await supabase.from("quote_items").update(item).eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/admin/presupuestos/${parsed.quoteId}`);

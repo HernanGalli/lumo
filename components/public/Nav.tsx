@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const LINKS = [
   { href: "/#catalogo", label: "Catálogo" },
-  { href: "/showcase", label: "Empresas / A Medida" },
+  { href: "/empresas", label: "Empresas / A Medida" },
   { href: "/#contacto", label: "Contacto" },
 ];
 

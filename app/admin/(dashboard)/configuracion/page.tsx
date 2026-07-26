@@ -6,17 +6,25 @@ import {
   updateSettings,
   updateTierRule,
 } from "@/lib/actions/settings";
+import { disconnectGmailAction } from "@/lib/actions/gmail";
+import { isGmailConnected } from "@/lib/gmail/client";
 
-export default async function ConfiguracionPage() {
+export default async function ConfiguracionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gmail?: string }>;
+}) {
+  const { gmail } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: settingsRows }, { data: tierRules }] = await Promise.all([
+  const [{ data: settingsRows }, { data: tierRules }, gmailStatus] = await Promise.all([
     supabase.from("settings").select("key, value"),
     supabase
       .from("price_tier_rules")
       .select("id, min_qty, max_qty, adjustment_pct")
       .eq("is_default", true)
       .order("min_qty", { ascending: true }),
+    isGmailConnected(),
   ]);
 
   const settings = settingsRowsToMap(settingsRows ?? []);
@@ -27,6 +35,43 @@ export default async function ConfiguracionPage() {
       <p className="text-foreground-muted mb-8">
         Estos valores alimentan la calculadora de costos y la plantilla de presupuestos.
       </p>
+
+      {gmail === "connected" && (
+        <div className="mb-6 rounded-md border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm">
+          Gmail conectado correctamente.
+        </div>
+      )}
+      {gmail === "error" && (
+        <div className="mb-6 rounded-md border border-rojo/50 bg-rojo/10 px-4 py-3 text-sm">
+          No se pudo conectar Gmail. Probá de nuevo.
+        </div>
+      )}
+
+      <div className="rounded-lg border border-border bg-surface p-6 mb-10">
+        <h2 className="font-medium mb-1">Gmail</h2>
+        <p className="text-sm text-foreground-muted mb-4">
+          Necesario para enviar presupuestos por mail y auto-responder consultas del sitio.
+        </p>
+        {gmailStatus.connected ? (
+          <div className="flex items-center gap-4">
+            <p className="text-sm">
+              Conectado como <span className="font-medium">{gmailStatus.email}</span>
+            </p>
+            <form action={disconnectGmailAction}>
+              <button type="submit" className="text-sm text-rojo hover:underline">
+                Desconectar
+              </button>
+            </form>
+          </div>
+        ) : (
+          <a
+            href="/api/gmail/connect"
+            className="inline-block rounded-md bg-azul px-4 py-2 text-sm text-white font-medium hover:bg-azul-claro transition-colors"
+          >
+            Conectar Gmail
+          </a>
+        )}
+      </div>
 
       <form action={updateSettings} className="rounded-lg border border-border bg-surface p-6 mb-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

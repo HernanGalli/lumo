@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#333333" },
@@ -51,15 +51,32 @@ export interface QuotePdfData {
   legalText: string;
   paymentTerms: string;
   leadTimeText: string;
+  logoUrl: string | null;
+  ivaPct: number;
+  companyRut: string;
+  companyAddress: string;
+  companyPhone: string;
 }
 
 export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
+  const companyLine = [data.companyRut, data.companyAddress, data.companyPhone]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <Document title={`Presupuesto ${data.quoteNumber ?? ""}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.brand}>LUMO</Text>
+          {data.logoUrl ? (
+            // Image acá es el componente de @react-pdf/renderer (no HTML <img>,
+            // no aplica el atributo alt de accesibilidad web).
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={data.logoUrl} style={{ height: 32, marginBottom: 6 }} />
+          ) : (
+            <Text style={styles.brand}>LUMO</Text>
+          )}
           <Text style={styles.subBrand}>Diseño e Impresión 3D — Montevideo, Uruguay</Text>
+          {companyLine && <Text style={styles.subBrand}>{companyLine}</Text>}
           <Text style={styles.quoteNumber}>Presupuesto {data.quoteNumber ?? ""}</Text>
         </View>
 
@@ -131,6 +148,9 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                 </View>
               ))}
             </View>
+            {data.ivaPct > 0 && (
+              <Text style={[styles.subBrand, { marginTop: 4 }]}>Precios + IVA ({data.ivaPct}%)</Text>
+            )}
           </View>
         )}
 

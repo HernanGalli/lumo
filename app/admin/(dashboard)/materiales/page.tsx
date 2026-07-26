@@ -21,66 +21,87 @@ export default async function MaterialesPage() {
         <h2 className="font-medium mb-4">Materiales</h2>
 
         <div className="flex flex-col gap-2 mb-4">
-          {(materials ?? []).map((m) => (
-            <form
-              key={m.id}
-              action={updateMaterial}
-              className="grid grid-cols-2 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto_auto] gap-2 items-center text-sm"
-            >
-              <input type="hidden" name="id" value={m.id} />
-              <input
-                name="name"
-                defaultValue={m.name}
-                required
-                className="rounded-md border border-border bg-background px-2 py-1.5"
-              />
-              <input
-                name="unit"
-                defaultValue={m.unit}
-                className="rounded-md border border-border bg-background px-2 py-1.5"
-              />
-              <input
-                name="costPerKg"
-                type="number"
-                step="0.01"
-                defaultValue={m.cost_per_kg}
-                required
-                title="Costo por kg"
-                className="rounded-md border border-border bg-background px-2 py-1.5"
-              />
-              <input
-                name="quantityOnHand"
-                type="number"
-                step="0.01"
-                defaultValue={m.quantity_on_hand}
-                title="Stock (gramos)"
-                className="rounded-md border border-border bg-background px-2 py-1.5"
-              />
-              <input
-                name="supplier"
-                defaultValue={m.supplier ?? ""}
-                placeholder="Proveedor"
-                className="rounded-md border border-border bg-background px-2 py-1.5"
-              />
-              <button
-                type="submit"
-                className="rounded-md border border-border px-2 py-1.5 hover:border-azul"
+          {(materials ?? []).map((m) => {
+            const lowStock = m.low_stock_threshold > 0 && m.quantity_on_hand <= m.low_stock_threshold;
+            return (
+              <form
+                key={m.id}
+                action={updateMaterial}
+                className={`grid grid-cols-2 sm:grid-cols-[1.3fr_0.7fr_0.9fr_0.9fr_0.9fr_1.1fr_auto_auto] gap-2 items-center text-sm rounded-md ${lowStock ? "ring-1 ring-amarillo" : ""}`}
               >
-                Guardar
-              </button>
-              <button
-                formAction={deleteMaterial}
-                className="rounded-md border border-border px-2 py-1.5 text-rojo hover:border-rojo"
-              >
-                Borrar
-              </button>
-            </form>
-          ))}
+                <input type="hidden" name="id" value={m.id} />
+                <div className="flex items-center gap-1.5">
+                  <input
+                    name="name"
+                    defaultValue={m.name}
+                    required
+                    className="w-full rounded-md border border-border bg-background px-2 py-1.5"
+                  />
+                  {lowStock && (
+                    <span
+                      title="Stock por debajo del umbral configurado"
+                      className="shrink-0 rounded-full bg-amarillo/20 px-2 py-0.5 text-xs text-amarillo"
+                    >
+                      Bajo
+                    </span>
+                  )}
+                </div>
+                <input
+                  name="unit"
+                  defaultValue={m.unit}
+                  className="rounded-md border border-border bg-background px-2 py-1.5"
+                />
+                <input
+                  name="costPerKg"
+                  type="number"
+                  step="0.01"
+                  defaultValue={m.cost_per_kg}
+                  required
+                  title="Costo por kg"
+                  className="rounded-md border border-border bg-background px-2 py-1.5"
+                />
+                <input
+                  name="quantityOnHand"
+                  type="number"
+                  step="0.01"
+                  defaultValue={m.quantity_on_hand}
+                  title="Stock (gramos)"
+                  className="rounded-md border border-border bg-background px-2 py-1.5"
+                />
+                <input
+                  name="lowStockThreshold"
+                  type="number"
+                  step="0.01"
+                  defaultValue={m.low_stock_threshold}
+                  title="Alertar cuando el stock baje de (gramos)"
+                  className="rounded-md border border-border bg-background px-2 py-1.5"
+                />
+                <input
+                  name="supplier"
+                  defaultValue={m.supplier ?? ""}
+                  placeholder="Proveedor"
+                  className="rounded-md border border-border bg-background px-2 py-1.5"
+                />
+                <button
+                  type="submit"
+                  className="rounded-md border border-border px-2 py-1.5 hover:border-azul"
+                >
+                  Guardar
+                </button>
+                <button
+                  formAction={deleteMaterial}
+                  className="rounded-md border border-border px-2 py-1.5 text-rojo hover:border-rojo"
+                >
+                  Borrar
+                </button>
+              </form>
+            );
+          })}
         </div>
 
         <form
           action={createMaterial}
-          className="grid grid-cols-2 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center text-sm pt-4 border-t border-border"
+          className="grid grid-cols-2 sm:grid-cols-[1.3fr_0.7fr_0.9fr_0.9fr_0.9fr_1.1fr_auto] gap-2 items-center text-sm pt-4 border-t border-border"
         >
           <input
             name="name"
@@ -110,6 +131,13 @@ export default async function MaterialesPage() {
             className="rounded-md border border-border bg-background px-2 py-1.5"
           />
           <input
+            name="lowStockThreshold"
+            type="number"
+            step="0.01"
+            placeholder="Alerta bajo (g)"
+            className="rounded-md border border-border bg-background px-2 py-1.5"
+          />
+          <input
             name="supplier"
             placeholder="Proveedor"
             className="rounded-md border border-border bg-background px-2 py-1.5"
@@ -122,6 +150,12 @@ export default async function MaterialesPage() {
           </button>
         </form>
       </section>
+
+      {(materials ?? []).some((m) => m.low_stock_threshold > 0 && m.quantity_on_hand <= m.low_stock_threshold) && (
+        <div className="mb-10 -mt-6 rounded-md border border-amarillo/50 bg-amarillo/10 px-4 py-3 text-sm">
+          Hay materiales con stock bajo (marcados arriba) — revisá si hace falta reponer.
+        </div>
+      )}
 
       <section className="rounded-lg border border-border bg-surface p-6">
         <h2 className="font-medium mb-4">Impresoras</h2>

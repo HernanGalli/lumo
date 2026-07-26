@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicUrl } from "@/lib/supabase/storage";
 import { settingsRowsToMap } from "@/lib/settings";
 import { generateQuotePdfBuffer } from "@/lib/pdf/generateQuotePdf";
 import type { QuotePdfData } from "@/lib/pdf/quoteTemplate";
@@ -63,6 +64,11 @@ export async function GET(
     legalText: (settings.quote_legal_text as string) ?? "",
     paymentTerms: (settings.quote_payment_terms as string) ?? "",
     leadTimeText: (settings.quote_lead_time_text as string) ?? "",
+    logoUrl: getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null),
+    ivaPct: Number(settings.iva_pct ?? 0),
+    companyRut: (settings.company_rut as string) ?? "",
+    companyAddress: (settings.company_address as string) ?? "",
+    companyPhone: (settings.company_phone as string) ?? "",
   };
 
   const pdfBuffer = await generateQuotePdfBuffer(data);
