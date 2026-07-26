@@ -98,6 +98,7 @@ export async function submitCorporateLead(formData: FormData) {
   });
 
   if (error) {
+    console.error("No se pudo guardar el lead corporativo:", error);
     return { ok: false as const, error: "No se pudo enviar. Probá de nuevo en un rato." };
   }
 
