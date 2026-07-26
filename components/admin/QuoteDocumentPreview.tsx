@@ -18,6 +18,11 @@ export interface QuotePreviewData {
   legalText: string;
   paymentTerms: string;
   leadTimeText: string;
+  logoUrl: string | null;
+  ivaPct: number;
+  companyRut: string;
+  companyAddress: string;
+  companyPhone: string;
 }
 
 export const QuoteDocumentPreview = forwardRef<HTMLDivElement, { data: QuotePreviewData }>(
@@ -28,8 +33,18 @@ export const QuoteDocumentPreview = forwardRef<HTMLDivElement, { data: QuotePrev
         className="rounded-lg border border-border bg-white text-[#333] p-8 max-w-2xl mx-auto"
       >
         <div className="border-b-2 border-azul pb-3 mb-4">
-          <p className="text-xl font-bold text-azul">LUMO</p>
+          {data.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={data.logoUrl} alt="LUMO" style={{ height: 40, marginBottom: 6 }} />
+          ) : (
+            <p className="text-xl font-bold text-azul">LUMO</p>
+          )}
           <p className="text-xs text-[#666]">Diseño e Impresión 3D — Montevideo, Uruguay</p>
+          {(data.companyRut || data.companyAddress || data.companyPhone) && (
+            <p className="text-xs text-[#666]">
+              {[data.companyRut, data.companyAddress, data.companyPhone].filter(Boolean).join(" · ")}
+            </p>
+          )}
           <p className="text-sm mt-2">Presupuesto {data.quoteNumber ?? ""}</p>
         </div>
 
@@ -109,6 +124,9 @@ export const QuoteDocumentPreview = forwardRef<HTMLDivElement, { data: QuotePrev
                 ))}
               </tbody>
             </table>
+            {data.ivaPct > 0 && (
+              <p className="text-xs text-[#666] mt-1">Precios + IVA ({data.ivaPct}%)</p>
+            )}
           </div>
         )}
 

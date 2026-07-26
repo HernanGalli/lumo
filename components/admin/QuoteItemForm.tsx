@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { addQuoteItem } from "@/lib/actions/quotes";
 
 interface Material {
   id: string;
@@ -13,28 +12,49 @@ interface Printer {
   name: string;
 }
 
-export function AddQuoteItemForm({
+export interface ExistingQuoteItem {
+  id: string;
+  description: string | null;
+  material_id: string | null;
+  printer_id: string | null;
+  peso_gramos: number | null;
+  tiempo_horas: number | null;
+  tiempo_diseno_horas: number | null;
+  base_unit_price: number;
+  quantity: number;
+}
+
+export function QuoteItemForm({
   quoteId,
   materials,
   printers,
   defaultMargenPct,
+  action,
+  item,
+  onCancel,
 }: {
   quoteId: string;
   materials: Material[];
   printers: Printer[];
   defaultMargenPct: number;
+  action: (formData: FormData) => void | Promise<void>;
+  item?: ExistingQuoteItem;
+  onCancel?: () => void;
 }) {
-  const [mode, setMode] = useState<"calculado" | "manual">("calculado");
+  const [mode, setMode] = useState<"calculado" | "manual">(
+    item && !item.material_id ? "manual" : "calculado"
+  );
 
   const inputClass =
     "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azul";
   const labelClass = "block text-xs text-foreground-muted mb-1";
 
   return (
-    <form action={addQuoteItem} className="rounded-lg border border-border bg-surface p-6">
-      <h2 className="font-medium mb-4">Agregar ítem</h2>
+    <form action={action} className="rounded-lg border border-border bg-surface p-6">
+      <h2 className="font-medium mb-4">{item ? "Editar ítem" : "Agregar ítem"}</h2>
       <input type="hidden" name="quoteId" value={quoteId} />
       <input type="hidden" name="mode" value={mode} />
+      {item && <input type="hidden" name="id" value={item.id} />}
 
       <div className="flex gap-2 mb-4">
         <button
@@ -58,7 +78,12 @@ export function AddQuoteItemForm({
           <label className={labelClass} htmlFor="description">
             Descripción
           </label>
-          <input id="description" name="description" className={inputClass} />
+          <input
+            id="description"
+            name="description"
+            defaultValue={item?.description ?? ""}
+            className={inputClass}
+          />
         </div>
 
         {mode === "calculado" ? (
@@ -67,7 +92,12 @@ export function AddQuoteItemForm({
               <label className={labelClass} htmlFor="materialId">
                 Material
               </label>
-              <select id="materialId" name="materialId" className={inputClass}>
+              <select
+                id="materialId"
+                name="materialId"
+                defaultValue={item?.material_id ?? undefined}
+                className={inputClass}
+              >
                 {materials.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -79,7 +109,12 @@ export function AddQuoteItemForm({
               <label className={labelClass} htmlFor="printerId">
                 Impresora
               </label>
-              <select id="printerId" name="printerId" className={inputClass}>
+              <select
+                id="printerId"
+                name="printerId"
+                defaultValue={item?.printer_id ?? undefined}
+                className={inputClass}
+              >
                 {printers.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -97,6 +132,7 @@ export function AddQuoteItemForm({
                 type="number"
                 step="0.1"
                 min={0}
+                defaultValue={item?.peso_gramos ?? undefined}
                 className={inputClass}
               />
             </div>
@@ -110,6 +146,7 @@ export function AddQuoteItemForm({
                 type="number"
                 step="0.1"
                 min={0}
+                defaultValue={item?.tiempo_horas ?? undefined}
                 className={inputClass}
               />
             </div>
@@ -123,6 +160,7 @@ export function AddQuoteItemForm({
                 type="number"
                 step="0.1"
                 min={0}
+                defaultValue={item?.tiempo_diseno_horas ?? undefined}
                 className={inputClass}
               />
             </div>
@@ -151,6 +189,7 @@ export function AddQuoteItemForm({
               type="number"
               step="0.01"
               min={0}
+              defaultValue={mode === "manual" ? item?.base_unit_price : undefined}
               className={inputClass}
             />
           </div>
@@ -165,18 +204,29 @@ export function AddQuoteItemForm({
             name="quantity"
             type="number"
             min={1}
-            defaultValue={1}
+            defaultValue={item?.quantity ?? 1}
             className={inputClass}
           />
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="rounded-md bg-azul px-4 py-2 text-sm text-white font-medium hover:bg-azul-claro transition-colors"
-      >
-        Agregar ítem
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          className="rounded-md bg-azul px-4 py-2 text-sm text-white font-medium hover:bg-azul-claro transition-colors"
+        >
+          {item ? "Guardar cambios" : "Agregar ítem"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-border px-4 py-2 text-sm hover:border-azul"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
     </form>
   );
 }

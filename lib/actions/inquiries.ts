@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isGmailConnected, sendGmailMessage } from "@/lib/gmail/client";
 
 const inquirySchema = z.object({
   formType: z.enum(["producto", "contacto"]),
@@ -42,5 +44,35 @@ export async function submitInquiry(formData: FormData) {
     return { ok: false as const, error: "No se pudo enviar. Probá de nuevo en un rato." };
   }
 
+  await sendAutoReply(parsed.data.email);
+
   return { ok: true as const };
+}
+
+// La auto-respuesta es un extra de cortesía: si Gmail no está conectado o el
+// envío falla, no debe romper la confirmación que ya vio el usuario.
+async function sendAutoReply(toEmail: string) {
+  try {
+    const { connected } = await isGmailConnected();
+    if (!connected) return;
+
+    // settings es privada (sin policy anon): esta lectura interna necesita
+    // el cliente con service-role, no el cliente público de la request.
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "email_reply_general")
+      .maybeSingle();
+    const replyText = typeof data?.value === "string" ? data.value : "";
+    if (!replyText) return;
+
+    await sendGmailMessage({
+      to: toEmail,
+      subject: "Recibimos tu consulta — LUMO",
+      textBody: replyText,
+    });
+  } catch (error) {
+    console.error("No se pudo enviar la auto-respuesta:", error);
+  }
 }
