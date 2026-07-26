@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { addQuoteItem, deleteQuoteItem, updateQuoteItem } from "@/lib/actions/quotes";
 import { QuoteItemForm, type ExistingQuoteItem } from "@/components/admin/QuoteItemForm";
+import { QuoteItemCostsTable, type QuoteItemCostRow } from "@/components/admin/QuoteItemCostsTable";
 
 const formatoMoneda = new Intl.NumberFormat("es-UY", { style: "currency", currency: "UYU" });
 
@@ -14,18 +15,27 @@ interface Printer {
   id: string;
   name: string;
 }
+interface Supply {
+  id: string;
+  name: string;
+  unit_cost: number;
+}
 
 export function QuoteItemsSection({
   quoteId,
   items,
   materials,
   printers,
+  supplies,
+  costsByItem,
   defaultMargenPct,
 }: {
   quoteId: string;
   items: (ExistingQuoteItem & { costo_total: number })[];
   materials: Material[];
   printers: Printer[];
+  supplies: Supply[];
+  costsByItem: Record<string, QuoteItemCostRow[]>;
   defaultMargenPct: number;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -35,34 +45,43 @@ export function QuoteItemsSection({
   const extras = items.filter((i) => i.item_type === "extra");
 
   function renderItem(item: (typeof items)[number]) {
+    const costs = costsByItem[item.id] ?? [];
     return (
-      <div
-        key={item.id}
-        className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-2 text-sm"
-      >
-        <div>
-          <p>{item.description ?? "Ítem"}</p>
-          <p className="text-xs text-foreground-muted">
-            Cantidad: {item.quantity} · Costo total: {formatoMoneda.format(item.costo_total)}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="font-medium">{formatoMoneda.format(item.base_unit_price)}</span>
-          <button
-            type="button"
-            className="text-xs text-azul hover:underline"
-            onClick={() => setEditingId(item.id)}
-          >
-            Editar
-          </button>
-          <form action={deleteQuoteItem}>
-            <input type="hidden" name="id" value={item.id} />
-            <input type="hidden" name="quoteId" value={quoteId} />
-            <button type="submit" className="text-xs text-rojo hover:underline">
-              Borrar
+      <div key={item.id} className="rounded-md border border-border px-4 py-2 text-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p>{item.description ?? "Ítem"}</p>
+            <p className="text-xs text-foreground-muted">
+              Cantidad: {item.quantity} · Costo total: {formatoMoneda.format(item.costo_total)}
+              {item.lote_quantity ? ` · Lote: ${item.lote_quantity} piezas` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-medium">{formatoMoneda.format(item.base_unit_price)}</span>
+            <button
+              type="button"
+              className="text-xs text-azul hover:underline"
+              onClick={() => setEditingId(item.id)}
+            >
+              Editar
             </button>
-          </form>
+            <form action={deleteQuoteItem}>
+              <input type="hidden" name="id" value={item.id} />
+              <input type="hidden" name="quoteId" value={quoteId} />
+              <button type="submit" className="text-xs text-rojo hover:underline">
+                Borrar
+              </button>
+            </form>
+          </div>
         </div>
+        {costs.length > 0 && (
+          <details className="mt-1">
+            <summary className="cursor-pointer text-xs text-foreground-muted">
+              Desglose de costos ({costs.length})
+            </summary>
+            <QuoteItemCostsTable quoteId={quoteId} costs={costs} />
+          </details>
+        )}
       </div>
     );
   }
@@ -91,6 +110,7 @@ export function QuoteItemsSection({
         quoteId={quoteId}
         materials={materials}
         printers={printers}
+        supplies={supplies}
         defaultMargenPct={defaultMargenPct}
         action={editingItem ? updateQuoteItem : addQuoteItem}
         item={editingItem}

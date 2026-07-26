@@ -47,7 +47,9 @@ export async function uploadMediaAsset(formData: FormData): Promise<MediaAssetRo
   }
 
   const mediaType: UploadKind = file.type.startsWith("video/") ? "video" : "image";
-  const storagePath = await uploadToBucket(supabase, "media-library", file, mediaType);
+  const storagePath = await uploadToBucket(supabase, "media-library", file, mediaType, {
+    skipFilter: formData.get("skipFilter") === "on",
+  });
 
   const tags = parseTags(formData.get("tags"));
   const fileName = z.string().trim().max(200).optional().parse(formData.get("fileName") || undefined);
@@ -127,11 +129,15 @@ export async function copyMediaAssetToBucket(
     type: fileBlob.type,
   });
 
+  // skipFilter: true — el archivo ya pasó por el pipeline al subirse a la
+  // biblioteca; aplicarlo de nuevo acá sobre-saturaría/sobre-nitidaría la
+  // imagen (el filtro no es idempotente).
   const storagePath = await uploadToBucket(
     supabase,
     targetBucket,
     file,
-    asset.media_type as UploadKind
+    asset.media_type as UploadKind,
+    { skipFilter: true }
   );
 
   return { storagePath, mediaType: asset.media_type as "image" | "video" };

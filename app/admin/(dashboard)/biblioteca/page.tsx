@@ -1,4 +1,5 @@
 import { listMediaAssets, deleteMediaAsset, uploadMediaAssetForm } from "@/lib/actions/mediaLibrary";
+import { SkipFilterCheckbox } from "@/components/admin/SkipFilterCheckbox";
 
 export default async function BibliotecaPage() {
   const assets = await listMediaAssets();
@@ -45,6 +46,7 @@ export default async function BibliotecaPage() {
             className={inputClass}
           />
         </div>
+        <SkipFilterCheckbox />
         <button
           type="submit"
           className="rounded-md bg-azul px-4 py-2 text-sm text-white font-medium hover:bg-azul-claro transition-colors"

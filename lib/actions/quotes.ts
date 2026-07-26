@@ -7,7 +7,11 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import {
   calcCostoBreakdown,
-  calcPrecioSugerido,
+  calcCostosExtras,
+  calcCostoTotal,
+  calcGananciaNeta,
+  calcPrecioUnidad,
+  calcPrecioVenta,
   generateTierTable,
   round2,
 } from "@/lib/pricing";
@@ -268,6 +272,9 @@ const addItemSchema = z.object({
   tiempoDisenoHoras: z.coerce.number().min(0).max(10_000).optional(),
   margenPct: z.coerce.number().min(0).max(1000).optional(),
   basePriceManual: z.coerce.number().min(0).max(100_000_000).optional(),
+  loteQuantity: z.coerce.number().int().min(1).max(1_000_000).optional(),
+  supplyIds: z.array(z.string().uuid()).default([]),
+  supplyQuantities: z.array(z.coerce.number().int().min(1).max(100_000)).default([]),
 });
 
 type QuoteItemFields = {
@@ -286,12 +293,47 @@ type QuoteItemFields = {
   costo_total: number;
   base_unit_price: number;
   quantity: number;
+  lote_quantity: number | null;
 };
+
+interface InsumoUsadoConNombre {
+  supplyId: string;
+  name: string;
+  unitCost: number;
+  quantity: number;
+}
+
+async function loadInsumosUsados(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  parsed: z.infer<typeof addItemSchema>
+): Promise<InsumoUsadoConNombre[]> {
+  if (parsed.supplyIds.length === 0) return [];
+
+  const { data: supplyRows } = await supabase
+    .from("supplies")
+    .select("id, name, unit_cost")
+    .in("id", parsed.supplyIds);
+
+  const byId = new Map((supplyRows ?? []).map((s) => [s.id, s]));
+  return parsed.supplyIds
+    .map((supplyId, i) => {
+      const supply = byId.get(supplyId);
+      if (!supply) return null;
+      return {
+        supplyId,
+        name: supply.name,
+        unitCost: supply.unit_cost,
+        quantity: parsed.supplyQuantities[i] ?? 1,
+      };
+    })
+    .filter((v): v is InsumoUsadoConNombre => v !== null);
+}
 
 async function buildQuoteItemFields(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  parsed: z.infer<typeof addItemSchema>
-): Promise<QuoteItemFields> {
+  parsed: z.infer<typeof addItemSchema>,
+  insumosUsados: InsumoUsadoConNombre[]
+): Promise<QuoteItemFields & { margenPctUsado: number; gananciaNeta: number }> {
   if (parsed.mode === "manual") {
     if (!parsed.basePriceManual) {
       throw new Error("Ingresá un precio manual");
@@ -312,6 +354,9 @@ async function buildQuoteItemFields(
       costo_total: 0,
       base_unit_price: round2(parsed.basePriceManual),
       quantity: parsed.quantity,
+      lote_quantity: null,
+      margenPctUsado: 0,
+      gananciaNeta: 0,
     };
   }
 
@@ -331,6 +376,7 @@ async function buildQuoteItemFields(
   const tarifaUteKwh = Number(settings.ute_tariff_kwh ?? 0);
   const defaultValorHora = Number(settings.labor_hourly_rate ?? 0);
   const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
+  const margenPctUsado = parsed.margenPct ?? defaultMargenPct;
 
   const breakdown = calcCostoBreakdown({
     pesoGramos: parsed.pesoGramos ?? 0,
@@ -341,7 +387,22 @@ async function buildQuoteItemFields(
     tiempoDisenoHoras: parsed.tiempoDisenoHoras ?? 0,
     valorHora: defaultValorHora,
   });
-  const basePrice = calcPrecioSugerido(breakdown.costoTotal, parsed.margenPct ?? defaultMargenPct);
+
+  // Costos Extras (insumos) se suman al costo total además de material,
+  // eléctrico y mano de obra de diseño — ver calculadora-costos-e-insumos.md.
+  const costosExtras = calcCostosExtras(
+    insumosUsados.map((i) => ({ unitCost: i.unitCost, quantity: i.quantity }))
+  );
+  const costoTotal =
+    breakdown.costoManoObra + calcCostoTotal(breakdown.costoMaterial, breakdown.costoEnergia, costosExtras);
+
+  const gananciaNeta = calcGananciaNeta(costoTotal, margenPctUsado);
+  const precioVenta = calcPrecioVenta(costoTotal, gananciaNeta);
+  // Si se cargó "cantidad de piezas del lote", el precio unitario es el
+  // Precio Venta repartido entre esas piezas; si no, se mantiene el
+  // comportamiento de siempre (precioVenta es el precio de este ítem tal
+  // cual, sin dividir).
+  const basePrice = parsed.loteQuantity ? calcPrecioUnidad(precioVenta, parsed.loteQuantity) : precioVenta;
 
   return {
     quote_id: parsed.quoteId,
@@ -356,9 +417,12 @@ async function buildQuoteItemFields(
     costo_material: round2(breakdown.costoMaterial),
     costo_energia: round2(breakdown.costoEnergia),
     costo_mano_obra: round2(breakdown.costoManoObra),
-    costo_total: round2(breakdown.costoTotal),
+    costo_total: round2(costoTotal),
     base_unit_price: round2(basePrice),
     quantity: parsed.quantity,
+    lote_quantity: parsed.loteQuantity ?? null,
+    margenPctUsado,
+    gananciaNeta: round2(gananciaNeta),
   };
 }
 
@@ -376,16 +440,91 @@ function parseItemForm(formData: FormData) {
     tiempoDisenoHoras: formData.get("tiempoDisenoHoras") || undefined,
     margenPct: formData.get("margenPct") || undefined,
     basePriceManual: formData.get("basePriceManual") || undefined,
+    loteQuantity: formData.get("loteQuantity") || undefined,
+    supplyIds: formData.getAll("supplyIds"),
+    supplyQuantities: formData.getAll("supplyQuantities"),
   });
+}
+
+// Regenera calc_supplies_used y quote_item_costs para un ítem (delete +
+// insert, mismo patrón que regenerateTiers con quote_price_tiers) — se
+// llama después de insertar/actualizar el quote_item, porque necesita su id.
+async function syncItemCostsAndSupplies(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  itemId: string,
+  fields: QuoteItemFields & { margenPctUsado: number; gananciaNeta: number },
+  insumosUsados: InsumoUsadoConNombre[]
+) {
+  await supabase.from("calc_supplies_used").delete().eq("quote_item_id", itemId);
+  if (insumosUsados.length > 0) {
+    await supabase.from("calc_supplies_used").insert(
+      insumosUsados.map((i) => ({
+        quote_item_id: itemId,
+        supply_id: i.supplyId,
+        quantity: i.quantity,
+        unit_cost_snapshot: i.unitCost,
+      }))
+    );
+  }
+
+  await supabase.from("quote_item_costs").delete().eq("quote_item_id", itemId);
+
+  const rows: { concept: string; amount: number; show_in_pdf: boolean; sort_order: number }[] = [];
+  let sortOrder = 0;
+
+  if (fields.material_id) {
+    rows.push({ concept: "Costo Material", amount: fields.costo_material, show_in_pdf: false, sort_order: sortOrder++ });
+    rows.push({ concept: "Costo Eléctrico", amount: fields.costo_energia, show_in_pdf: false, sort_order: sortOrder++ });
+    if (fields.costo_mano_obra > 0) {
+      rows.push({
+        concept: "Mano de obra (diseño)",
+        amount: fields.costo_mano_obra,
+        show_in_pdf: false,
+        sort_order: sortOrder++,
+      });
+    }
+    for (const insumo of insumosUsados) {
+      rows.push({
+        concept: insumo.name,
+        amount: round2(insumo.unitCost * insumo.quantity),
+        show_in_pdf: false,
+        sort_order: sortOrder++,
+      });
+    }
+    // Margen/Ganancia Neta: nunca show_in_pdf=true — ni siquiera se expone
+    // el checkbox en la UI (ver presupuestos-desglose-y-pdf.md §2).
+    rows.push({
+      concept: `Margen (${fields.margenPctUsado}%)`,
+      amount: fields.gananciaNeta,
+      show_in_pdf: false,
+      sort_order: sortOrder++,
+    });
+  }
+
+  rows.push({ concept: "Precio Unidad", amount: fields.base_unit_price, show_in_pdf: true, sort_order: sortOrder++ });
+  rows.push({
+    concept: "Precio Total",
+    amount: round2(fields.base_unit_price * fields.quantity),
+    show_in_pdf: true,
+    sort_order: sortOrder++,
+  });
+
+  await supabase.from("quote_item_costs").insert(rows.map((r) => ({ ...r, quote_item_id: itemId })));
 }
 
 export async function addQuoteItem(formData: FormData) {
   const supabase = await createClient();
   const parsed = parseItemForm(formData);
-  const item = await buildQuoteItemFields(supabase, parsed);
+  const insumosUsados = await loadInsumosUsados(supabase, parsed);
+  const fields = await buildQuoteItemFields(supabase, parsed, insumosUsados);
+  const { margenPctUsado, gananciaNeta, ...item } = fields;
+  void margenPctUsado;
+  void gananciaNeta;
 
-  const { error } = await supabase.from("quote_items").insert(item);
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase.from("quote_items").insert(item).select("id").single();
+  if (error || !data) throw new Error(error?.message ?? "No se pudo crear el ítem");
+
+  await syncItemCostsAndSupplies(supabase, data.id, fields, insumosUsados);
 
   revalidatePath(`/admin/presupuestos/${parsed.quoteId}`);
 }
@@ -394,10 +533,16 @@ export async function updateQuoteItem(formData: FormData) {
   const supabase = await createClient();
   const id = z.string().uuid().parse(formData.get("id"));
   const parsed = parseItemForm(formData);
-  const item = await buildQuoteItemFields(supabase, parsed);
+  const insumosUsados = await loadInsumosUsados(supabase, parsed);
+  const fields = await buildQuoteItemFields(supabase, parsed, insumosUsados);
+  const { margenPctUsado, gananciaNeta, ...item } = fields;
+  void margenPctUsado;
+  void gananciaNeta;
 
   const { error } = await supabase.from("quote_items").update(item).eq("id", id);
   if (error) throw new Error(error.message);
+
+  await syncItemCostsAndSupplies(supabase, id, fields, insumosUsados);
 
   revalidatePath(`/admin/presupuestos/${parsed.quoteId}`);
 }
@@ -476,6 +621,39 @@ export async function updateQuoteTierPrice(formData: FormData) {
   const { error } = await supabase
     .from("quote_price_tiers")
     .update({ unit_price: round2(unitPrice) })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+}
+
+const toggleCostVisibilitySchema = z.object({
+  id: z.string().uuid(),
+  quoteId: z.string().uuid(),
+  showInPdf: z.coerce.boolean(),
+});
+
+// El Margen/Ganancia Neta nunca tiene opción de mostrarse en el PDF del
+// cliente — ni el checkbox debe existir para esa fila (ver
+// presupuestos-desglose-y-pdf.md §2). El chequeo acá es defensa en
+// profundidad además de que la UI no renderiza el checkbox para esa fila.
+export async function toggleQuoteItemCostVisibility(formData: FormData) {
+  const supabase = await createClient();
+  const { id, quoteId, showInPdf } = toggleCostVisibilitySchema.parse({
+    id: formData.get("id"),
+    quoteId: formData.get("quoteId"),
+    showInPdf: formData.get("showInPdf") === "on",
+  });
+
+  const { data: row } = await supabase.from("quote_item_costs").select("concept").eq("id", id).single();
+  if (!row) throw new Error("Fila de costo no encontrada");
+  if (row.concept.startsWith("Margen")) {
+    throw new Error("El Margen no se puede mostrar en el PDF del cliente");
+  }
+
+  const { error } = await supabase
+    .from("quote_item_costs")
+    .update({ show_in_pdf: showInPdf })
     .eq("id", id);
   if (error) throw new Error(error.message);
 

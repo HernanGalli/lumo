@@ -27,14 +27,44 @@ export const SETTINGS_FIELDS = [
   },
 ] as const;
 
-export type SettingsMap = Record<string, number | string>;
+export type SettingsMap = Record<string, number | string | boolean>;
 
 export function settingsRowsToMap(
   rows: { key: string; value: unknown }[]
 ): SettingsMap {
   const map: SettingsMap = {};
   for (const row of rows) {
-    map[row.key] = row.value as number | string;
+    map[row.key] = row.value as number | string | boolean;
   }
   return map;
+}
+
+// Claves del pipeline de fotos (lib/images/processImage.ts). No se agregan
+// a SETTINGS_FIELDS a propósito — ese array solo maneja inputs
+// number/text/textarea, y esto necesita un switch/select/slider a medida
+// (ver components/admin/PhotoSettingsForm.tsx), mismo criterio que ya usan
+// los tramos de precio en /admin/configuracion.
+export const PHOTO_SETTINGS_KEYS = [
+  "foto_filtro_activo",
+  "foto_filtro_intensidad",
+  "foto_ancho_maximo_px",
+  "foto_calidad_webp",
+] as const;
+
+export type FilterIntensity = "suave" | "medio" | "fuerte";
+
+export interface PhotoSettings {
+  filtroActivo: boolean;
+  filtroIntensidad: FilterIntensity;
+  anchoMaximoPx: number;
+  calidadWebp: number;
+}
+
+export function getPhotoSettings(settings: SettingsMap): PhotoSettings {
+  return {
+    filtroActivo: settings.foto_filtro_activo !== false,
+    filtroIntensidad: ((settings.foto_filtro_intensidad as FilterIntensity) || "suave"),
+    anchoMaximoPx: Number(settings.foto_ancho_maximo_px ?? 1600),
+    calidadWebp: Number(settings.foto_calidad_webp ?? 80),
+  };
 }

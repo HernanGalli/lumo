@@ -6,11 +6,13 @@ import { QuoteCalculatorForm } from "@/components/admin/QuoteCalculatorForm";
 export default async function CalculadoraPage() {
   const supabase = await createClient();
 
-  const [{ data: materials }, { data: printers }, { data: settingsRows }] = await Promise.all([
-    supabase.from("materials").select("id, name, cost_per_kg").order("name"),
-    supabase.from("printers").select("id, name, watts").order("name"),
-    supabase.from("settings").select("key, value"),
-  ]);
+  const [{ data: materials }, { data: printers }, { data: supplies }, { data: settingsRows }] =
+    await Promise.all([
+      supabase.from("materials").select("id, name, cost_per_kg").order("name"),
+      supabase.from("printers").select("id, name, watts").order("name"),
+      supabase.from("supplies").select("id, name, unit_cost").eq("active", true).order("name"),
+      supabase.from("settings").select("key, value"),
+    ]);
 
   const settings = settingsRowsToMap(settingsRows ?? []);
   const tarifaUteKwh = Number(settings.ute_tariff_kwh ?? 0);
@@ -39,6 +41,7 @@ export default async function CalculadoraPage() {
       <QuoteCalculatorForm
         materials={materials ?? []}
         printers={printers ?? []}
+        supplies={supplies ?? []}
         tarifaUteKwh={tarifaUteKwh}
         defaultMargenPct={defaultMargenPct}
         defaultValorHora={defaultValorHora}

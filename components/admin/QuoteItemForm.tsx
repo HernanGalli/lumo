@@ -12,6 +12,12 @@ interface Printer {
   name: string;
 }
 
+interface Supply {
+  id: string;
+  name: string;
+  unit_cost: number;
+}
+
 export interface ExistingQuoteItem {
   id: string;
   description: string | null;
@@ -23,12 +29,15 @@ export interface ExistingQuoteItem {
   base_unit_price: number;
   quantity: number;
   item_type: "producto" | "extra";
+  lote_quantity?: number | null;
+  suppliesUsed?: { supply_id: string; quantity: number }[];
 }
 
 export function QuoteItemForm({
   quoteId,
   materials,
   printers,
+  supplies,
   defaultMargenPct,
   action,
   item,
@@ -37,6 +46,7 @@ export function QuoteItemForm({
   quoteId: string;
   materials: Material[];
   printers: Printer[];
+  supplies: Supply[];
   defaultMargenPct: number;
   action: (formData: FormData) => void | Promise<void>;
   item?: ExistingQuoteItem;
@@ -46,6 +56,18 @@ export function QuoteItemForm({
     item && !item.material_id ? "manual" : "calculado"
   );
   const [itemType, setItemType] = useState<"producto" | "extra">(item?.item_type ?? "producto");
+  const [selectedSupplies, setSelectedSupplies] = useState<Record<string, number>>(
+    Object.fromEntries((item?.suppliesUsed ?? []).map((s) => [s.supply_id, s.quantity]))
+  );
+
+  function toggleSupply(supplyId: string, checked: boolean) {
+    setSelectedSupplies((prev) => {
+      const next = { ...prev };
+      if (checked) next[supplyId] = next[supplyId] ?? 1;
+      else delete next[supplyId];
+      return next;
+    });
+  }
 
   const inputClass =
     "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azul";
@@ -196,6 +218,67 @@ export function QuoteItemForm({
                 defaultValue={defaultMargenPct}
                 className={inputClass}
               />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="loteQuantity">
+                Cantidad de piezas del lote
+              </label>
+              <input
+                id="loteQuantity"
+                name="loteQuantity"
+                type="number"
+                min={1}
+                step="1"
+                defaultValue={item?.lote_quantity ?? ""}
+                placeholder="Opcional"
+                className={inputClass}
+              />
+            </div>
+
+            <div className="sm:col-span-2 pt-2 border-t border-border">
+              <p className={labelClass}>Insumos usados (argolla, cadena, packaging, mano de obra...)</p>
+              {supplies.length === 0 && (
+                <p className="text-xs text-foreground-muted">
+                  Todavía no cargaste insumos en /admin/insumos.
+                </p>
+              )}
+              <div className="flex flex-col gap-1.5">
+                {supplies.map((s) => {
+                  const checked = s.id in selectedSupplies;
+                  return (
+                    <div key={s.id} className="flex items-center gap-2 text-sm">
+                      <label className="flex items-center gap-2 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => toggleSupply(s.id, e.target.checked)}
+                        />
+                        {s.name} (${s.unit_cost})
+                      </label>
+                      {checked && (
+                        <input
+                          type="number"
+                          min={1}
+                          value={selectedSupplies[s.id]}
+                          onChange={(e) =>
+                            setSelectedSupplies((prev) => ({
+                              ...prev,
+                              [s.id]: Number(e.target.value) || 1,
+                            }))
+                          }
+                          className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {Object.entries(selectedSupplies).map(([supplyId, qty]) => (
+                <span key={supplyId}>
+                  <input type="hidden" name="supplyIds" value={supplyId} />
+                  <input type="hidden" name="supplyQuantities" value={qty} />
+                </span>
+              ))}
             </div>
           </>
         ) : (

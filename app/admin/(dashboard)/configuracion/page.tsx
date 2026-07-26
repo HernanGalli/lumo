@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { SETTINGS_FIELDS, settingsRowsToMap } from "@/lib/settings";
+import { SETTINGS_FIELDS, getPhotoSettings, settingsRowsToMap } from "@/lib/settings";
 import {
   createTierRule,
   deleteTierRule,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/actions/settings";
 import { disconnectGmailAction } from "@/lib/actions/gmail";
 import { isGmailConnected } from "@/lib/gmail/client";
+import { PhotoSettingsForm } from "@/components/admin/PhotoSettingsForm";
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -28,6 +29,7 @@ export default async function ConfiguracionPage({
   ]);
 
   const settings = settingsRowsToMap(settingsRows ?? []);
+  const photoSettings = getPhotoSettings(settings);
 
   return (
     <div className="max-w-3xl">
@@ -97,7 +99,7 @@ export default async function ConfiguracionPage({
                   name={field.key}
                   type={field.type === "number" ? "number" : "text"}
                   step={field.type === "number" ? "0.01" : undefined}
-                  defaultValue={settings[field.key] ?? (field.type === "number" ? 0 : "")}
+                  defaultValue={(settings[field.key] as string | number | undefined) ?? (field.type === "number" ? 0 : "")}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-azul"
                 />
               )}
@@ -209,6 +211,16 @@ export default async function ConfiguracionPage({
           </button>
           <span />
         </form>
+      </div>
+
+      <div className="rounded-lg border border-border bg-surface p-6 mt-10">
+        <h2 className="font-medium mb-1">Fotos</h2>
+        <p className="text-sm text-foreground-muted mb-4">
+          Compresión y filtro profesional automático al subir fotos en catálogo, showcase,
+          logos de clientes y banners. Se puede desactivar el filtro para una foto puntual desde
+          su propio formulario de carga.
+        </p>
+        <PhotoSettingsForm settings={photoSettings} />
       </div>
     </div>
   );

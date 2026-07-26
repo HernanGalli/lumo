@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MediaPicker, type ResolvedMedia } from "@/components/admin/MediaPicker";
+import { SkipFilterCheckbox } from "@/components/admin/SkipFilterCheckbox";
 
 interface BannerFormProps {
   action: (formData: FormData) => void | Promise<void>;
@@ -116,6 +117,7 @@ export function BannerForm({ action, banner, submitLabel }: BannerFormProps) {
         {libraryPick && (
           <p className="mt-1 text-xs text-cian">Elegiste una imagen de la biblioteca ✓</p>
         )}
+        {!libraryPick && <div className="mt-2"><SkipFilterCheckbox /></div>}
       </div>
 
       {mediaType === "video" && (

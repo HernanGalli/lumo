@@ -75,6 +75,25 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderLeft: `3 solid ${ORANGE}`,
   },
+  costSubRow: {
+    flexDirection: "row",
+    paddingVertical: 3,
+    paddingLeft: 12,
+    fontSize: 8.5,
+    color: MUTED,
+  },
+  totalGeneralBox: {
+    marginTop: 4,
+    marginBottom: 16,
+    padding: "16 18",
+    backgroundColor: NAVY,
+    borderRadius: 6,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  totalGeneralLabel: { fontSize: 12, color: "#CBD5E1", textTransform: "uppercase", letterSpacing: 0.5 },
+  totalGeneralValue: { fontSize: 22, fontWeight: 700, color: ORANGE },
 });
 
 const formatCurrency = (value: number) =>
@@ -85,6 +104,8 @@ export interface QuoteLine {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  /** Filas de quote_item_costs con show_in_pdf=true (nunca incluye Margen). */
+  costBreakdown?: { concept: string; amount: number }[];
 }
 
 export interface QuotePdfData {
@@ -98,6 +119,7 @@ export interface QuotePdfData {
   projectSummary: string | null;
   items: QuoteLine[];
   extras: QuoteLine[];
+  totalGeneral: number;
   tiers: {
     minQty: number;
     maxQty: number | null;
@@ -127,11 +149,19 @@ function LinesTable({ lines }: { lines: QuoteLine[] }) {
         <Text style={styles.colTotal}>Total</Text>
       </View>
       {lines.map((line, i) => (
-        <View style={styles.tableRow} key={i}>
-          <Text style={styles.colDesc}>{line.description}</Text>
-          <Text style={styles.colQty}>{line.quantity}</Text>
-          <Text style={styles.colUnit}>{formatCurrency(line.unitPrice)}</Text>
-          <Text style={styles.colTotal}>{formatCurrency(line.totalPrice)}</Text>
+        <View key={i}>
+          <View style={styles.tableRow}>
+            <Text style={styles.colDesc}>{line.description}</Text>
+            <Text style={styles.colQty}>{line.quantity}</Text>
+            <Text style={styles.colUnit}>{formatCurrency(line.unitPrice)}</Text>
+            <Text style={styles.colTotal}>{formatCurrency(line.totalPrice)}</Text>
+          </View>
+          {line.costBreakdown?.map((cost, j) => (
+            <View style={styles.costSubRow} key={j}>
+              <Text style={styles.colDesc}>{cost.concept}</Text>
+              <Text style={styles.colTotal}>{formatCurrency(cost.amount)}</Text>
+            </View>
+          ))}
         </View>
       ))}
     </View>
@@ -214,6 +244,13 @@ export function QuotePdfDocument({ data }: { data: QuotePdfData }) {
               <Text style={styles.sectionTitle}>Adicionales</Text>
               <View style={styles.sectionAccentLine} />
               <LinesTable lines={data.extras} />
+            </View>
+          )}
+
+          {data.totalGeneral > 0 && (
+            <View style={styles.totalGeneralBox}>
+              <Text style={styles.totalGeneralLabel}>Total</Text>
+              <Text style={styles.totalGeneralValue}>{formatCurrency(data.totalGeneral)}</Text>
             </View>
           )}
 

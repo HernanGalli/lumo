@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPublicUrl } from "@/lib/supabase/storage";
 import { createClientLogo } from "@/lib/actions/clientLogos";
 import { ClientLogoReorderList } from "@/components/admin/ClientLogoReorderList";
+import { SkipFilterCheckbox } from "@/components/admin/SkipFilterCheckbox";
 
 export default async function LogosClientesPage() {
   const supabase = await createClient();
@@ -49,6 +50,7 @@ export default async function LogosClientesPage() {
           </label>
           <input id="file" name="file" type="file" accept="image/jpeg,image/png,image/webp" required className="text-sm" />
         </div>
+        <SkipFilterCheckbox />
         <button
           type="submit"
           className="rounded-md bg-azul px-4 py-2 text-sm text-white font-medium hover:bg-azul-claro transition-colors"

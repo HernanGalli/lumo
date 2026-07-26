@@ -30,13 +30,16 @@ export default async function PublicLayout({ children }: { children: React.React
   // el cliente service-role para que un visitante anónimo la vea. Mismo
   // patrón que ya usa la auto-respuesta de Gmail (lib/gmail/client.ts).
   const supabaseAdmin = createAdminClient();
-  const { data: settingsRows } = await supabaseAdmin
-    .from("settings")
-    .select("key, value")
-    .eq("key", "quote_logo_path");
+  const [{ data: settingsRows }, { data: segmentContentRows }] = await Promise.all([
+    supabaseAdmin.from("settings").select("key, value").eq("key", "quote_logo_path"),
+    supabaseAdmin.from("segment_content").select("segment, whatsapp_message"),
+  ]);
   const settings = settingsRowsToMap(settingsRows ?? []);
   const logoPath = (settings.quote_logo_path as string) || null;
   const logoUrl = getPublicUrl(supabaseAdmin, "branding", logoPath);
+  const segmentMessages = Object.fromEntries(
+    (segmentContentRows ?? []).map((row) => [row.segment, row.whatsapp_message])
+  );
 
   return (
     <div className={`${inter.variable} ${spaceGrotesk.variable} sitio-publico`}>
@@ -45,7 +48,7 @@ export default async function PublicLayout({ children }: { children: React.React
         <Nav logoUrl={logoUrl} />
         <main>{children}</main>
         <Footer logoUrl={logoUrl} />
-        <WhatsAppBubble />
+        <WhatsAppBubble segmentMessages={segmentMessages} />
         <ContactModal />
         <ProductInquiryModal />
       </ModalProvider>

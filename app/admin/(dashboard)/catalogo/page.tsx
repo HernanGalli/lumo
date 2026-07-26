@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPublicUrl } from "@/lib/supabase/storage";
 import { createCategory, deleteCategory, renameCategory } from "@/lib/actions/categories";
 import { CategoryProductReorder } from "@/components/admin/CategoryProductReorder";
+import { CategoryKindSegmentFields } from "@/components/admin/CategoryKindSegmentFields";
 
 const formatoMoneda = new Intl.NumberFormat("es-UY", { style: "currency", currency: "UYU" });
 
@@ -16,7 +17,7 @@ export default async function CatalogoPage({
 
   const { data: categories } = await supabase
     .from("categories")
-    .select("id, name, slug, sort_order")
+    .select("id, name, slug, sort_order, kind, segment")
     .order("sort_order", { ascending: true });
 
   const selectedCategory = categoria
@@ -138,14 +139,15 @@ export default async function CatalogoPage({
         <summary className="cursor-pointer text-sm font-medium">Gestionar categorías</summary>
         <div className="mt-4 flex flex-col gap-2">
           {(categories ?? []).map((c) => (
-            <div key={c.id} className="flex items-center gap-2 text-sm">
-              <form action={renameCategory} className="flex flex-1 items-center gap-2">
+            <div key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
+              <form action={renameCategory} className="flex flex-1 flex-wrap items-center gap-2">
                 <input type="hidden" name="id" value={c.id} />
                 <input
                   name="name"
                   defaultValue={c.name}
-                  className="flex-1 rounded-md border border-border bg-background px-2 py-1.5"
+                  className="flex-1 min-w-[10rem] rounded-md border border-border bg-background px-2 py-1.5"
                 />
+                <CategoryKindSegmentFields defaultKind={c.kind} defaultSegment={c.segment ?? ""} />
                 <button type="submit" className="rounded-md border border-border px-2 py-1.5 hover:border-azul">
                   Guardar
                 </button>
@@ -158,13 +160,14 @@ export default async function CatalogoPage({
               </form>
             </div>
           ))}
-          <form action={createCategory} className="flex items-center gap-2 pt-2 border-t border-border">
+          <form action={createCategory} className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
             <input
               name="name"
               placeholder="Nueva categoría (ej. Empresas)"
               required
-              className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              className="flex-1 min-w-[10rem] rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             />
+            <CategoryKindSegmentFields />
             <button
               type="submit"
               className="rounded-md bg-azul px-3 py-1.5 text-sm text-white hover:bg-azul-claro"

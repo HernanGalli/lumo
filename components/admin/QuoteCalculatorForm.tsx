@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { calcCostoBreakdown, calcPrecioSugerido, round2 } from "@/lib/pricing";
+import {
+  calcCostoBreakdown,
+  calcCostosExtras,
+  calcCostoTotal,
+  calcGananciaNeta,
+  calcPrecioSugerido,
+  calcPrecioUnidad,
+  calcPrecioVenta,
+  round2,
+} from "@/lib/pricing";
 import { PriceBreakdown } from "@/components/admin/PriceBreakdown";
 
 interface Material {
@@ -16,15 +25,23 @@ interface Printer {
   watts: number;
 }
 
+interface Supply {
+  id: string;
+  name: string;
+  unit_cost: number;
+}
+
 export function QuoteCalculatorForm({
   materials,
   printers,
+  supplies,
   tarifaUteKwh,
   defaultMargenPct,
   defaultValorHora,
 }: {
   materials: Material[];
   printers: Printer[];
+  supplies: Supply[];
   tarifaUteKwh: number;
   defaultMargenPct: number;
   defaultValorHora: number;
@@ -36,6 +53,8 @@ export function QuoteCalculatorForm({
   const [tiempoDisenoHoras, setTiempoDisenoHoras] = useState(0);
   const [valorHora, setValorHora] = useState(defaultValorHora);
   const [margenPct, setMargenPct] = useState(defaultMargenPct);
+  const [selectedSupplies, setSelectedSupplies] = useState<Record<string, number>>({});
+  const [loteQuantity, setLoteQuantity] = useState(1);
 
   const material = materials.find((m) => m.id === materialId);
   const printer = printers.find((p) => p.id === printerId);
@@ -60,6 +79,35 @@ export function QuoteCalculatorForm({
   }, [pesoGramos, material, tiempoHoras, printer, tarifaUteKwh, tiempoDisenoHoras, valorHora]);
 
   const precioSugerido = round2(calcPrecioSugerido(breakdown.costoTotal, margenPct || 0));
+
+  const costosExtras = useMemo(
+    () =>
+      round2(
+        calcCostosExtras(
+          Object.entries(selectedSupplies).map(([supplyId, quantity]) => ({
+            unitCost: supplies.find((s) => s.id === supplyId)?.unit_cost ?? 0,
+            quantity,
+          }))
+        )
+      ),
+    [selectedSupplies, supplies]
+  );
+
+  const costoTotalConInsumos = round2(
+    breakdown.costoManoObra + calcCostoTotal(breakdown.costoMaterial, breakdown.costoEnergia, costosExtras)
+  );
+  const gananciaNeta = round2(calcGananciaNeta(costoTotalConInsumos, margenPct || 0));
+  const precioVenta = round2(calcPrecioVenta(costoTotalConInsumos, gananciaNeta));
+  const precioUnidad = loteQuantity > 0 ? round2(calcPrecioUnidad(precioVenta, loteQuantity)) : null;
+
+  function toggleSupply(supplyId: string, checked: boolean) {
+    setSelectedSupplies((prev) => {
+      const next = { ...prev };
+      if (checked) next[supplyId] = next[supplyId] ?? 1;
+      else delete next[supplyId];
+      return next;
+    });
+  }
 
   const inputClass =
     "w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-azul";
@@ -186,15 +234,97 @@ export function QuoteCalculatorForm({
         <p className="text-xs text-foreground-muted">
           Tarifa UTE actual: ${tarifaUteKwh}/kWh (editable en Configuración).
         </p>
+
+        <div className="pt-4 border-t border-border">
+          <p className={labelClass}>Insumos usados (argolla, cadena, packaging, mano de obra...)</p>
+          {supplies.length === 0 && (
+            <p className="text-xs text-foreground-muted">
+              Todavía no cargaste insumos en /admin/insumos.
+            </p>
+          )}
+          <div className="flex flex-col gap-2">
+            {supplies.map((s) => {
+              const checked = s.id in selectedSupplies;
+              return (
+                <div key={s.id} className="flex items-center gap-2 text-sm">
+                  <label className="flex items-center gap-2 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => toggleSupply(s.id, e.target.checked)}
+                    />
+                    {s.name} (${s.unit_cost})
+                  </label>
+                  {checked && (
+                    <input
+                      type="number"
+                      min={1}
+                      value={selectedSupplies[s.id]}
+                      onChange={(e) =>
+                        setSelectedSupplies((prev) => ({ ...prev, [s.id]: Number(e.target.value) || 1 }))
+                      }
+                      className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass} htmlFor="loteQuantity">
+            Cantidad de piezas del lote
+          </label>
+          <input
+            id="loteQuantity"
+            type="number"
+            min={1}
+            step="1"
+            value={loteQuantity}
+            onChange={(e) => setLoteQuantity(Number(e.target.value) || 0)}
+            className={inputClass}
+          />
+          <p className="text-xs text-foreground-muted mt-1">
+            Cuántas unidades salieron de este cálculo (distinto de la cantidad que pide un
+            cliente puntual en un presupuesto).
+          </p>
+        </div>
       </div>
 
-      <PriceBreakdown
-        costoMaterial={breakdown.costoMaterial}
-        costoEnergia={breakdown.costoEnergia}
-        costoManoObra={breakdown.costoManoObra}
-        costoTotal={breakdown.costoTotal}
-        precioSugerido={precioSugerido}
-      />
+      <div className="flex flex-col gap-4">
+        <PriceBreakdown
+          costoMaterial={breakdown.costoMaterial}
+          costoEnergia={breakdown.costoEnergia}
+          costoManoObra={breakdown.costoManoObra}
+          costoTotal={breakdown.costoTotal}
+          precioSugerido={precioSugerido}
+        />
+
+        <div className="rounded-lg border border-azul/40 bg-azul/5 p-6 flex flex-col gap-2 text-sm">
+          <h3 className="font-medium mb-1">Con insumos y lote</h3>
+          <div className="flex justify-between">
+            <span className="text-foreground-muted">Costos Extras (insumos)</span>
+            <span>${costosExtras}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-foreground-muted">Costo Total</span>
+            <span>${costoTotalConInsumos}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-foreground-muted">Ganancia Neta ({margenPct}%)</span>
+            <span>${gananciaNeta}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-foreground-muted">Precio Venta</span>
+            <span>${precioVenta}</span>
+          </div>
+          <div className="flex justify-between border-t border-border pt-2 mt-1 text-base font-semibold text-azul">
+            <span>Precio Unidad</span>
+            <span>{precioUnidad !== null ? `$${precioUnidad}` : "—"}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,18 +1,24 @@
 import { ShowcaseCard, type PublicShowcasePost } from "@/components/public/ShowcaseCard";
 
-export interface SolucionGrupo {
+export interface CategoriaConPosts {
   slug: string;
   label: string;
   posts: PublicShowcasePost[];
 }
 
-export function SolucionesCatalogo({ grupos }: { grupos: SolucionGrupo[] }) {
+export function CatalogoPorSegmento({
+  grupos,
+  title = "Catálogo de Soluciones",
+}: {
+  grupos: CategoriaConPosts[];
+  title?: string;
+}) {
   const conContenido = grupos.filter((g) => g.posts.length > 0);
 
   return (
     <section className="bg-background-secundario">
       <div className="contenedor py-16 md:py-20">
-        <h2 className="titulo-seccion">Catálogo de Soluciones Corporativas</h2>
+        <h2 className="titulo-seccion">{title}</h2>
 
         {conContenido.length === 0 && (
           <p className="text-center text-foreground-muted">

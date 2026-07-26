@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPublicUrl } from "@/lib/supabase/storage";
+import { getPublicUrl, toPdfSafePath } from "@/lib/supabase/storage";
 import { settingsRowsToMap } from "@/lib/settings";
 import { regenerateTiers, updateQuoteTierPrice } from "@/lib/actions/quotes";
 import { sendQuoteEmail } from "@/lib/actions/gmail";
@@ -11,6 +11,7 @@ import { QuoteExportPanel } from "@/components/admin/QuoteExportPanel";
 import { QuoteStatusSelect } from "@/components/admin/QuoteStatusSelect";
 import { QuoteDetailsForm } from "@/components/admin/QuoteDetailsForm";
 import { QuotePdfOptionsForm } from "@/components/admin/QuotePdfOptionsForm";
+import type { QuoteItemCostRow } from "@/components/admin/QuoteItemCostsTable";
 
 export default async function PresupuestoDetailPage({
   params,
@@ -26,6 +27,7 @@ export default async function PresupuestoDetailPage({
     { data: tiers },
     { data: materials },
     { data: printers },
+    { data: supplies },
     { data: settingsRows },
     gmailStatus,
     { data: emailLog },
@@ -39,6 +41,7 @@ export default async function PresupuestoDetailPage({
       .order("sort_order", { ascending: true }),
     supabase.from("materials").select("id, name").order("name"),
     supabase.from("printers").select("id, name").order("name"),
+    supabase.from("supplies").select("id, name, unit_cost").eq("active", true).order("name"),
     supabase.from("settings").select("key, value"),
     isGmailConnected(),
     supabase
@@ -48,17 +51,55 @@ export default async function PresupuestoDetailPage({
       .order("sent_at", { ascending: false }),
   ]);
 
+  const itemIds = (items ?? []).map((i) => i.id);
+  const [{ data: suppliesUsedRows }, { data: itemCostRows }] = await Promise.all([
+    itemIds.length
+      ? supabase.from("calc_supplies_used").select("quote_item_id, supply_id, quantity").in("quote_item_id", itemIds)
+      : Promise.resolve({ data: [] as { quote_item_id: string; supply_id: string; quantity: number }[] }),
+    itemIds.length
+      ? supabase
+          .from("quote_item_costs")
+          .select("*")
+          .in("quote_item_id", itemIds)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+
+  const suppliesUsedByItem = new Map<string, { supply_id: string; quantity: number }[]>();
+  for (const row of suppliesUsedRows ?? []) {
+    const list = suppliesUsedByItem.get(row.quote_item_id) ?? [];
+    list.push({ supply_id: row.supply_id, quantity: row.quantity });
+    suppliesUsedByItem.set(row.quote_item_id, list);
+  }
+
+  const itemsWithSupplies = (items ?? []).map((item) => ({
+    ...item,
+    suppliesUsed: suppliesUsedByItem.get(item.id) ?? [],
+  }));
+
+  const costsByItem = new Map<string, QuoteItemCostRow[]>();
+  for (const row of (itemCostRows ?? []) as (QuoteItemCostRow & { quote_item_id: string })[]) {
+    const list = costsByItem.get(row.quote_item_id) ?? [];
+    list.push(row);
+    costsByItem.set(row.quote_item_id, list);
+  }
+
   if (!quote) notFound();
 
   const settings = settingsRowsToMap(settingsRows ?? []);
   const defaultMargenPct = Number(settings.default_margin_pct ?? 0);
   const suggestedBasePrice = items?.[0]?.base_unit_price ?? 0;
-  const logoUrl = getPublicUrl(supabase, "branding", (settings.quote_logo_path as string) ?? null);
+  const logoUrl = getPublicUrl(
+    supabase,
+    "branding",
+    toPdfSafePath((settings.quote_logo_path as string) ?? null)
+  );
 
   const previewData = buildQuotePdfData({
     quote,
     items: items ?? [],
     tiers: tiers ?? [],
+    itemCosts: itemCostRows ?? [],
     settings,
     logoUrl,
   });
@@ -82,9 +123,11 @@ export default async function PresupuestoDetailPage({
 
       <QuoteItemsSection
         quoteId={quote.id}
-        items={items ?? []}
+        items={itemsWithSupplies}
         materials={materials ?? []}
         printers={printers ?? []}
+        supplies={supplies ?? []}
+        costsByItem={Object.fromEntries(costsByItem)}
         defaultMargenPct={quote.margin_pct ?? defaultMargenPct}
       />
 
