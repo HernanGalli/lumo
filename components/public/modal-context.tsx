@@ -3,9 +3,10 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface ModalState {
-  contactOpen: boolean;
-  productOpen: boolean;
-  productName: string;
+  inquiryOpen: boolean;
+  // null = consulta general ("Contáctanos"); string = interés en un
+  // producto puntual ("Solicitar Compra") — un solo modal, ver InquiryModal.
+  productName: string | null;
 }
 
 interface ModalContextValue extends ModalState {
@@ -17,18 +18,13 @@ interface ModalContextValue extends ModalState {
 const ModalContext = createContext<ModalContextValue | null>(null);
 
 export function ModalProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ModalState>({
-    contactOpen: false,
-    productOpen: false,
-    productName: "",
-  });
+  const [state, setState] = useState<ModalState>({ inquiryOpen: false, productName: null });
 
   const value: ModalContextValue = {
     ...state,
-    openContact: () => setState({ contactOpen: true, productOpen: false, productName: "" }),
-    openProductInquiry: (productName) =>
-      setState({ contactOpen: false, productOpen: true, productName }),
-    close: () => setState({ contactOpen: false, productOpen: false, productName: "" }),
+    openContact: () => setState({ inquiryOpen: true, productName: null }),
+    openProductInquiry: (productName) => setState({ inquiryOpen: true, productName }),
+    close: () => setState({ inquiryOpen: false, productName: null }),
   };
 
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;

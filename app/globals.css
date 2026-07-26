@@ -669,6 +669,27 @@ html {
   min-height: 20px;
 }
 
+/* Modal de bienvenida: imagen a sangre en la parte de arriba (compensa el
+   padding de .modal__contenido con márgenes negativos), copy centrado. */
+.welcome-modal {
+  text-align: center;
+}
+.welcome-modal__imagen {
+  display: block;
+  width: calc(100% + 60px);
+  max-height: 260px;
+  margin: -30px -30px 20px;
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+}
+.welcome-modal__subtitulo {
+  color: var(--foreground-muted);
+  margin-bottom: 20px;
+}
+.welcome-modal .boton {
+  display: inline-block;
+}
+
 /* ---- Responsive ---- */
 @media (min-width: 768px) {
   .titulo-seccion {

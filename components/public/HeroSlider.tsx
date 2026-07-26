@@ -14,10 +14,13 @@ export interface HeroBanner {
 
 const SLIDE_DURATION = 5000;
 
-const DEFAULT_HEADLINE = "La identidad de tu cuadro o tu marca, en la palma de la mano.";
+// Copy por defecto de requerimientos-lumo-llaveros-v2.md §6.1 — se usa
+// salvo que haya un banner activo con headline/bodyText propio cargado en
+// /admin/banners (page_target='home').
+const DEFAULT_HEADLINE = "Un llavero, un recuerdo.";
 const DEFAULT_BODY =
-  "Transformamos escudos, logos e ideas en llaveros y merchandising 3D en alta definición. " +
-  "Calidad prolija que se nota y se toca, sin mínimos disparatados.";
+  "Personalizamos llaveros para tu empresa, tu emprendimiento, tu escuela o ese evento que no " +
+  "querés que se olvide. Diseñado en Uruguay, pensado para vos.";
 
 export function HeroSlider({ banners }: { banners: HeroBanner[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -71,18 +74,18 @@ export function HeroSlider({ banners }: { banners: HeroBanner[] }) {
         <p className="hero__parrafo">{activeBanner?.bodyText || DEFAULT_BODY}</p>
         <div className="hero__botones">
           <a
-            href="/empresas#cotizar"
+            href="#segmentos"
             className="boton"
-            onClick={() => trackClick("hero_cta", "/", "crear_llavero")}
+            onClick={() => trackClick("hero_cta", "/", "contame_tu_idea")}
           >
-            Crear mi llavero personalizado
+            Contame tu idea
           </a>
           <a
-            href="/empresas#cotizar"
+            href="/catalogo"
             className="boton boton--outline"
-            onClick={() => trackClick("hero_cta", "/", "pedir_cotizacion")}
+            onClick={() => trackClick("hero_cta", "/", "ver_catalogo")}
           >
-            Pedir cotización
+            Ver catálogo
           </a>
         </div>
       </div>

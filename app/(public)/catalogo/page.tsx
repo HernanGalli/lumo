@@ -12,7 +12,15 @@ export default async function CatalogoPage() {
   const supabase = await createClient();
 
   const [{ data: categories }, { data: products }] = await Promise.all([
-    supabase.from("categories").select("id, name, slug").order("sort_order", { ascending: true }),
+    // kind='catalogo' — evita que las categorías de landing de segmento
+    // (Empresas/Emprendimientos/Escuelas/Eventos/Grupos, usadas en
+    // /llaveros y Showcase) aparezcan como filtros del catálogo general de
+    // productos, donde no tienen ningún producto cargado.
+    supabase
+      .from("categories")
+      .select("id, name, slug")
+      .eq("kind", "catalogo")
+      .order("sort_order", { ascending: true }),
     supabase
       .from("products")
       .select("id, name, description, price_original, price_offer, is_offer, is_featured")

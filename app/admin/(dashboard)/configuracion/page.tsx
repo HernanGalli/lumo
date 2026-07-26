@@ -9,6 +9,7 @@ import {
 import { disconnectGmailAction } from "@/lib/actions/gmail";
 import { isGmailConnected } from "@/lib/gmail/client";
 import { PhotoSettingsForm } from "@/components/admin/PhotoSettingsForm";
+import { WelcomeModalSettingsForm } from "@/components/admin/WelcomeModalSettingsForm";
 
 export default async function ConfiguracionPage({
   searchParams,
@@ -221,6 +222,24 @@ export default async function ConfiguracionPage({
           su propio formulario de carga.
         </p>
         <PhotoSettingsForm settings={photoSettings} />
+      </div>
+
+      <div className="rounded-lg border border-border bg-surface p-6 mt-10">
+        <h2 className="font-medium mb-1">Modal de Bienvenida</h2>
+        <p className="text-sm text-foreground-muted mb-4">
+          Aparece una sola vez cada 7 días por visitante, nunca en el admin. Si lo apagás acá,
+          no se evalúa ni se muestra nunca.
+        </p>
+        <WelcomeModalSettingsForm
+          settings={{
+            enabled: settings.welcome_modal_enabled === true,
+            imageUrl: (settings.welcome_modal_image_url as string) ?? "",
+            title: (settings.welcome_modal_title as string) ?? "",
+            subtitle: (settings.welcome_modal_subtitle as string) ?? "",
+            buttonText: (settings.welcome_modal_button_text as string) ?? "",
+            buttonLink: (settings.welcome_modal_button_link as string) ?? "",
+          }}
+        />
       </div>
     </div>
   );

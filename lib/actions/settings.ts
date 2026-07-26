@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { getPublicUrl } from "@/lib/supabase/storage";
 import { SETTINGS_FIELDS } from "@/lib/settings";
 
 export async function updateSettings(formData: FormData) {
@@ -53,6 +54,53 @@ export async function updatePhotoSettings(formData: FormData) {
     ],
     { onConflict: "key" }
   );
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/configuracion");
+}
+
+const welcomeModalSchema = z.object({
+  enabled: z.coerce.boolean(),
+  imagePath: z.string().trim().max(500).optional().or(z.literal("")),
+  title: z.string().trim().min(1).max(200),
+  subtitle: z.string().trim().min(1).max(400),
+  buttonText: z.string().trim().min(1).max(60),
+  buttonLink: z.string().trim().min(1).max(500),
+});
+
+// Separado de updateSettings a propósito, mismo criterio que
+// updatePhotoSettings: necesita el selector de imágenes (MediaPicker) y un
+// switch, no encaja en el loop genérico de SETTINGS_FIELDS. La imagen se
+// recibe como storage_path (bucket "banners", vía MediaPicker +
+// copyMediaAssetToBucket) y se resuelve a URL pública acá, para guardar la
+// URL final en settings.welcome_modal_image_url tal como pide el spec.
+export async function updateWelcomeModalSettings(formData: FormData) {
+  const supabase = await createClient();
+  const parsed = welcomeModalSchema.parse({
+    enabled: formData.get("enabled") === "on",
+    imagePath: formData.get("imagePath") || "",
+    title: formData.get("title"),
+    subtitle: formData.get("subtitle"),
+    buttonText: formData.get("buttonText"),
+    buttonLink: formData.get("buttonLink"),
+  });
+
+  // imagePath solo llega si el admin eligió una imagen NUEVA en este envío
+  // (ver WelcomeModalSettingsForm) — si no, se deja welcome_modal_image_url
+  // como está, para no perder la imagen ya guardada solo por tocar el
+  // resto del formulario.
+  const rows: { key: string; value: unknown }[] = [
+    { key: "welcome_modal_enabled", value: parsed.enabled },
+    { key: "welcome_modal_title", value: parsed.title },
+    { key: "welcome_modal_subtitle", value: parsed.subtitle },
+    { key: "welcome_modal_button_text", value: parsed.buttonText },
+    { key: "welcome_modal_button_link", value: parsed.buttonLink },
+  ];
+  if (parsed.imagePath) {
+    rows.push({ key: "welcome_modal_image_url", value: getPublicUrl(supabase, "banners", parsed.imagePath) ?? "" });
+  }
+
+  const { error } = await supabase.from("settings").upsert(rows, { onConflict: "key" });
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/configuracion");

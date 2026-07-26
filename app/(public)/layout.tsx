@@ -6,8 +6,8 @@ import { ModalProvider } from "@/components/public/modal-context";
 import { Nav } from "@/components/public/Nav";
 import { Footer } from "@/components/public/Footer";
 import { WhatsAppBubble } from "@/components/public/WhatsAppBubble";
-import { ContactModal } from "@/components/public/ContactModal";
-import { ProductInquiryModal } from "@/components/public/ProductInquiryModal";
+import { InquiryModal } from "@/components/public/InquiryModal";
+import { WelcomeModal } from "@/components/public/WelcomeModal";
 import { Analytics } from "@/components/public/Analytics";
 
 const inter = Inter({
@@ -31,7 +31,18 @@ export default async function PublicLayout({ children }: { children: React.React
   // patrón que ya usa la auto-respuesta de Gmail (lib/gmail/client.ts).
   const supabaseAdmin = createAdminClient();
   const [{ data: settingsRows }, { data: segmentContentRows }] = await Promise.all([
-    supabaseAdmin.from("settings").select("key, value").eq("key", "quote_logo_path"),
+    supabaseAdmin
+      .from("settings")
+      .select("key, value")
+      .in("key", [
+        "quote_logo_path",
+        "welcome_modal_enabled",
+        "welcome_modal_image_url",
+        "welcome_modal_title",
+        "welcome_modal_subtitle",
+        "welcome_modal_button_text",
+        "welcome_modal_button_link",
+      ]),
     supabaseAdmin.from("segment_content").select("segment, whatsapp_message"),
   ]);
   const settings = settingsRowsToMap(settingsRows ?? []);
@@ -41,6 +52,11 @@ export default async function PublicLayout({ children }: { children: React.React
     (segmentContentRows ?? []).map((row) => [row.segment, row.whatsapp_message])
   );
 
+  // Apagado (o sin imagen configurada) → ni siquiera se monta el
+  // componente, no solo se oculta con CSS.
+  const welcomeModalImageUrl = (settings.welcome_modal_image_url as string) || "";
+  const showWelcomeModal = settings.welcome_modal_enabled === true && Boolean(welcomeModalImageUrl);
+
   return (
     <div className={`${inter.variable} ${spaceGrotesk.variable} sitio-publico`}>
       <ModalProvider>
@@ -49,8 +65,18 @@ export default async function PublicLayout({ children }: { children: React.React
         <main>{children}</main>
         <Footer logoUrl={logoUrl} />
         <WhatsAppBubble segmentMessages={segmentMessages} />
-        <ContactModal />
-        <ProductInquiryModal />
+        <InquiryModal />
+        {showWelcomeModal && (
+          <WelcomeModal
+            content={{
+              imageUrl: welcomeModalImageUrl,
+              title: (settings.welcome_modal_title as string) ?? "",
+              subtitle: (settings.welcome_modal_subtitle as string) ?? "",
+              buttonText: (settings.welcome_modal_button_text as string) ?? "Cotizá tu llavero",
+              buttonLink: (settings.welcome_modal_button_link as string) || "/llaveros",
+            }}
+          />
+        )}
       </ModalProvider>
     </div>
   );

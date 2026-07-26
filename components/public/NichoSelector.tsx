@@ -11,7 +11,7 @@ import { SEGMENT_SLUGS, SEGMENTS } from "@/lib/segments";
 // backoffice-logica-multisegmento.md §0).
 export function NichoSelector() {
   return (
-    <section className="contenedor py-16 md:py-20">
+    <section id="segmentos" className="contenedor py-16 md:py-20">
       <h2 className="titulo-seccion">No importa la ocasión, hay un llavero para eso</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {SEGMENT_SLUGS.map((slug) => {
