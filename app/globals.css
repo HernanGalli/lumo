@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --color-azul: #254b8a;
+  --color-azul-claro: #3a66b5;
+  --color-rojo: #d73a31;
+  --color-amarillo: #f5b91a;
+
+  --background: #fdfdfd;
+  --background-secundario: #f4f4f4;
+  --surface: #ffffff;
+  --border: #e5e5e5;
+  --foreground: #333333;
+  --foreground-muted: #666666;
+}
+
+:root[data-theme="dark"] {
+  --background: #121212;
+  --background-secundario: #1a1a1a;
+  --surface: #1e1e1e;
+  --border: #2e2e2e;
+  --foreground: #ededed;
+  --foreground-muted: #a3a3a3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #121212;
+    --background-secundario: #1a1a1a;
+    --surface: #1e1e1e;
+    --border: #2e2e2e;
+    --foreground: #ededed;
+    --foreground-muted: #a3a3a3;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-secundario: var(--background-secundario);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-azul: var(--color-azul);
+  --color-azul-claro: var(--color-azul-claro);
+  --color-rojo: var(--color-rojo);
+  --color-amarillo: var(--color-amarillo);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Tratamiento de armonía visual para fotos de catálogo/showcase: se aplica
+   de forma uniforme vía esta clase (no por imagen) para que fotos con
+   distinta iluminación/fondo se perciban como parte de un mismo set. */
+.foto-armonia {
+  filter: saturate(0.94) contrast(1.04) brightness(1.01);
+}
