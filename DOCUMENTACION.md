@@ -407,11 +407,23 @@ Revisá que `status` sea "Publicado" (no "Borrador") y, en banners, que esté
 
 ## 12. Qué no está hecho todavía (ideas a futuro)
 
+> Nota: esta sección (y el resto del documento) describe hasta Fase 3. Las
+> Fases 4 y 5 (banners B2B, presupuestos con código semántico, landing
+> multisegmento `/llaveros`, pipeline de compresión de fotos, insumos de la
+> calculadora y desglose de costos en el PDF) todavía no tienen su propia
+> sección acá — ver `md-hernan/*.md` para las specs originales y el código
+> en `lib/segments.ts`, `lib/images/`, `lib/actions/supplies.ts` y
+> `lib/actions/quotes.ts` mientras se actualiza este documento.
+
 - Multi-usuario / permisos (hoy es un solo admin).
 - Cachear el PDF generado en el bucket `quotes` (hoy se regenera en cada
   descarga/envío — funciona bien para el volumen actual, pero si en algún
   momento se vuelve lento vale la pena cachear).
 - Aplicar el `currency_code` configurado a los formatos de precio del sitio
   público y la calculadora (hoy están fijos en pesos uruguayos).
-- Compresión automática de imágenes/videos subidos (hoy se suben tal cual
-  las sube el admin; algunas fotos del catálogo original pesan más de 1MB).
+- Recolectar fotos reales por segmento en `/admin/showcase` (Escuelas y
+  Eventos Sociales hoy no tienen contenido — las categorías ya existen
+  desde `0013_categorias_segmentos.sql`).
+- Validar la calculadora de insumos (`lib/pricing.ts`) contra más filas
+  reales de la planilla de costos, más allá del único ejemplo transcripto
+  en `calculadora-costos-e-insumos.md`.
