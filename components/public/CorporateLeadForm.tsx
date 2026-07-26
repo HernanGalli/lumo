@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { submitCorporateLead } from "@/lib/actions/corporateLeads";
 
 const PROJECT_TYPES = [
@@ -31,6 +31,8 @@ export function CorporateLeadForm() {
   const [designStatus, setDesignStatus] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [fileName, setFileName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardClass = (active: boolean) =>
     `w-full text-left rounded-lg border p-4 transition-colors ${
@@ -139,16 +141,27 @@ export function CorporateLeadForm() {
               </button>
             ))}
           </div>
-          <label className="block text-sm text-foreground-muted mb-1" htmlFor="file">
-            Adjuntar archivo de referencia (logo, .stl, .step, opcional)
-          </label>
           <input
+            ref={fileInputRef}
             id="file"
             name="file"
             type="file"
             accept=".jpg,.jpeg,.png,.pdf,.stl,.step,.stp,.zip"
-            className="w-full text-sm"
+            className="hidden"
+            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
           />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full rounded-lg border-2 border-dashed border-azul bg-azul/5 px-4 py-6 text-center hover:bg-azul/10 transition-colors"
+          >
+            <span className="block text-azul font-medium mb-1">
+              {fileName ? "✓ " + fileName : "📎 Adjuntar tu logo, escudo o referencia"}
+            </span>
+            <span className="block text-xs text-foreground-muted">
+              Recomendado — cotizamos más rápido y con más precisión. Imagen, PDF, .stl, .step o .zip.
+            </span>
+          </button>
         </div>
       )}
 
@@ -164,8 +177,7 @@ export function CorporateLeadForm() {
             />
             <input
               name="companyName"
-              placeholder="Empresa"
-              required
+              placeholder="Empresa, club o grupo (opcional)"
               className="rounded-md border border-border bg-background px-3 py-2"
             />
             <input

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { trackClick } from "@/lib/actions/analytics";
 
 const WHATSAPP_NUMBER = "59898753757";
 const DEFAULT_MESSAGE = "Hola! Quiero consultar por...";
@@ -18,6 +19,7 @@ export function WhatsAppBubble() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escribinos por WhatsApp"
+      onClick={() => trackClick("whatsapp_bubble", pathname ?? "")}
       className="fixed bottom-5 right-5 z-[1000] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">

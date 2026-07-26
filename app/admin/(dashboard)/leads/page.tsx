@@ -45,7 +45,7 @@ export default async function LeadsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
               <div>
                 <p className="font-medium">
-                  {lead.company_name} — {lead.contact_name}
+                  {lead.company_name ? `${lead.company_name} — ${lead.contact_name}` : lead.contact_name}
                 </p>
                 <p className="text-foreground-muted">
                   {lead.email}

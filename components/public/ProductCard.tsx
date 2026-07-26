@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useModal } from "@/components/public/modal-context";
+import { trackClick } from "@/lib/actions/analytics";
 
 export interface PublicProduct {
   id: string;
@@ -19,6 +21,7 @@ const formatoMoneda = new Intl.NumberFormat("es-UY", { style: "currency", curren
 export function ProductCard({ product }: { product: PublicProduct }) {
   const [activeImage, setActiveImage] = useState(0);
   const { openProductInquiry } = useModal();
+  const pathname = usePathname();
   const images = product.images.length > 0 ? product.images : [null];
 
   function nextImage() {
@@ -90,7 +93,10 @@ export function ProductCard({ product }: { product: PublicProduct }) {
           <button
             type="button"
             className="boton producto-card__boton"
-            onClick={() => openProductInquiry(product.name)}
+            onClick={() => {
+              trackClick("me_interesa", pathname ?? "", product.name);
+              openProductInquiry(product.name);
+            }}
           >
             Me interesa
           </button>

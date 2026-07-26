@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isGmailConnected, sendGmailMessage } from "@/lib/gmail/client";
+import { notifyOwner } from "@/lib/notifications/ownerAlert";
 
 const inquirySchema = z.object({
   formType: z.enum(["producto", "contacto"]),
@@ -45,6 +46,16 @@ export async function submitInquiry(formData: FormData) {
   }
 
   await sendAutoReply(parsed.data.email);
+  await notifyOwner({
+    subject: `Nueva consulta — ${parsed.data.name}`,
+    textBody:
+      `Entró una consulta nueva del sitio (${parsed.data.formType === "producto" ? "interés en producto" : "contacto general"}).\n\n` +
+      `Nombre: ${parsed.data.name}\n` +
+      `Email: ${parsed.data.email}\n` +
+      `Teléfono: ${parsed.data.phone || "—"}\n` +
+      (parsed.data.productName ? `Producto: ${parsed.data.productName}\n` : "") +
+      `Mensaje: ${parsed.data.message || "—"}\n`,
+  });
 
   return { ok: true as const };
 }

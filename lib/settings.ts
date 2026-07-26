@@ -20,6 +20,11 @@ export const SETTINGS_FIELDS = [
     label: "Auto-respuesta — consulta de proyecto para empresa",
     type: "textarea",
   },
+  {
+    key: "owner_notification_email",
+    label: "Mail para avisos de actividad (leads, consultas y reporte semanal)",
+    type: "text",
+  },
 ] as const;
 
 export type SettingsMap = Record<string, number | string>;

@@ -122,12 +122,18 @@ export async function reorderShowcasePosts(orderedIds: string[]) {
 export async function addShowcaseImage(formData: FormData) {
   const supabase = await createClient();
   const postId = z.string().uuid().parse(formData.get("postId"));
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Elegí una imagen para subir");
-  }
 
-  const storagePath = await uploadToBucket(supabase, "showcase", file, "image");
+  const preUploadedPath = formData.get("preUploadedPath");
+  let storagePath: string;
+  if (typeof preUploadedPath === "string" && preUploadedPath) {
+    storagePath = preUploadedPath;
+  } else {
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new Error("Elegí una imagen para subir");
+    }
+    storagePath = await uploadToBucket(supabase, "showcase", file, "image");
+  }
 
   const { data: maxRow } = await supabase
     .from("showcase_post_images")
