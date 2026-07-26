@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 
 const LINKS = [
-  { href: "/#catalogo", label: "Catálogo" },
-  { href: "/empresas", label: "Empresas / A Medida" },
-  { href: "/#contacto", label: "Contacto" },
+  { href: "/#proceso", label: "Cómo funciona" },
+  { href: "/empresas", label: "Empresas" },
+  { href: "/catalogo", label: "Catálogo" },
 ];
 
 export function Nav({ logoUrl }: { logoUrl: string | null }) {

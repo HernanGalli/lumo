@@ -12,6 +12,7 @@ import {
   round2,
 } from "@/lib/pricing";
 import { settingsRowsToMap } from "@/lib/settings";
+import { slugifyUpper } from "@/lib/slug";
 
 const QUOTE_STATUSES = [
   "cotizado",
@@ -21,8 +22,13 @@ const QUOTE_STATUSES = [
   "cancelado",
 ] as const;
 
+// Código semántico: {PROJECT_LABEL|PROYECTO}-{CLIENTE}-{AÑO}-{secuencial del
+// año, 2 dígitos}. Ej. LLAVEROS-EMPRESA-2026-01. Editable después desde
+// updateQuoteDetails, esto solo arma la propuesta inicial.
 async function nextQuoteNumber(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clientName: string,
+  projectLabel?: string
 ): Promise<string> {
   const year = new Date().getFullYear();
   const { count } = await supabase
@@ -32,7 +38,9 @@ async function nextQuoteNumber(
     .lt("created_at", `${year + 1}-01-01`);
 
   const sequence = (count ?? 0) + 1;
-  return `LUMO-${year}-${String(sequence).padStart(4, "0")}`;
+  const prefix = slugifyUpper(projectLabel?.trim() || "PROYECTO") || "PROYECTO";
+  const clientSlug = slugifyUpper(clientName) || "CLIENTE";
+  return `${prefix}-${clientSlug}-${year}-${String(sequence).padStart(2, "0")}`;
 }
 
 const createQuoteSchema = z.object({
@@ -42,6 +50,7 @@ const createQuoteSchema = z.object({
   validUntil: z.string().optional().or(z.literal("")),
   marginPct: z.coerce.number().min(0).max(1000).optional(),
   notes: z.string().trim().max(4000).optional().or(z.literal("")),
+  projectLabel: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
 export async function createQuote(formData: FormData) {
@@ -53,9 +62,10 @@ export async function createQuote(formData: FormData) {
     validUntil: formData.get("validUntil") || "",
     marginPct: formData.get("marginPct") || undefined,
     notes: formData.get("notes") || "",
+    projectLabel: formData.get("projectLabel") || "",
   });
 
-  const quoteNumber = await nextQuoteNumber(supabase);
+  const quoteNumber = await nextQuoteNumber(supabase, parsed.clientName, parsed.projectLabel);
 
   const { data, error } = await supabase
     .from("quotes")
@@ -67,6 +77,7 @@ export async function createQuote(formData: FormData) {
       valid_until: parsed.validUntil || null,
       margin_pct: parsed.marginPct ?? null,
       notes: parsed.notes || null,
+      project_label: parsed.projectLabel || null,
       status: "cotizado",
     })
     .select("id")
@@ -76,6 +87,104 @@ export async function createQuote(formData: FormData) {
 
   revalidatePath("/admin/presupuestos");
   redirect(`/admin/presupuestos/${data.id}`);
+}
+
+const updateQuoteDetailsSchema = z.object({
+  id: z.string().uuid(),
+  quoteNumber: z
+    .string()
+    .trim()
+    .min(3, "El código debe tener al menos 3 caracteres")
+    .max(80)
+    .regex(/^[A-Z0-9-]+$/, "Solo mayúsculas, números y guiones"),
+  clientName: z.string().trim().min(1).max(200),
+  clientContact: z.string().trim().max(200).optional().or(z.literal("")),
+  deliveryEstimateDate: z.string().optional().or(z.literal("")),
+  validUntil: z.string().optional().or(z.literal("")),
+  marginPct: z.coerce.number().min(0).max(1000).optional(),
+  notes: z.string().trim().max(4000).optional().or(z.literal("")),
+  projectLabel: z.string().trim().max(60).optional().or(z.literal("")),
+  projectSummary: z.string().trim().max(4000).optional().or(z.literal("")),
+});
+
+export async function updateQuoteDetails(formData: FormData) {
+  const supabase = await createClient();
+  const parsed = updateQuoteDetailsSchema.parse({
+    id: formData.get("id"),
+    quoteNumber: formData.get("quoteNumber"),
+    clientName: formData.get("clientName"),
+    clientContact: formData.get("clientContact") || "",
+    deliveryEstimateDate: formData.get("deliveryEstimateDate") || "",
+    validUntil: formData.get("validUntil") || "",
+    marginPct: formData.get("marginPct") || undefined,
+    notes: formData.get("notes") || "",
+    projectLabel: formData.get("projectLabel") || "",
+    projectSummary: formData.get("projectSummary") || "",
+  });
+
+  const { error } = await supabase
+    .from("quotes")
+    .update({
+      quote_number: parsed.quoteNumber,
+      client_name: parsed.clientName,
+      client_contact: parsed.clientContact || null,
+      delivery_estimate_date: parsed.deliveryEstimateDate || null,
+      valid_until: parsed.validUntil || null,
+      margin_pct: parsed.marginPct ?? null,
+      notes: parsed.notes || null,
+      project_label: parsed.projectLabel || null,
+      project_summary: parsed.projectSummary || null,
+    })
+    .eq("id", parsed.id);
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`Ya existe otro presupuesto con el código "${parsed.quoteNumber}"`);
+    }
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/admin/presupuestos/${parsed.id}`);
+  revalidatePath("/admin/presupuestos");
+}
+
+const updateQuotePdfOptionsSchema = z.object({
+  id: z.string().uuid(),
+  pdfSummaryMode: z.enum(["resumen", "desglose"]),
+  pdfSummaryLabel: z.string().trim().max(200).optional().or(z.literal("")),
+  pdfShowTiers: z.coerce.boolean().optional(),
+  pdfShowExtras: z.coerce.boolean().optional(),
+  pdfShowProjectSummary: z.coerce.boolean().optional(),
+  pdfShowNotes: z.coerce.boolean().optional(),
+});
+
+export async function updateQuotePdfOptions(formData: FormData) {
+  const supabase = await createClient();
+  const parsed = updateQuotePdfOptionsSchema.parse({
+    id: formData.get("id"),
+    pdfSummaryMode: formData.get("pdfSummaryMode"),
+    pdfSummaryLabel: formData.get("pdfSummaryLabel") || "",
+    pdfShowTiers: formData.get("pdfShowTiers") === "on",
+    pdfShowExtras: formData.get("pdfShowExtras") === "on",
+    pdfShowProjectSummary: formData.get("pdfShowProjectSummary") === "on",
+    pdfShowNotes: formData.get("pdfShowNotes") === "on",
+  });
+
+  const { error } = await supabase
+    .from("quotes")
+    .update({
+      pdf_summary_mode: parsed.pdfSummaryMode,
+      pdf_summary_label: parsed.pdfSummaryLabel || null,
+      pdf_show_tiers: parsed.pdfShowTiers ?? false,
+      pdf_show_extras: parsed.pdfShowExtras ?? false,
+      pdf_show_project_summary: parsed.pdfShowProjectSummary ?? false,
+      pdf_show_notes: parsed.pdfShowNotes ?? false,
+    })
+    .eq("id", parsed.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/presupuestos/${parsed.id}`);
 }
 
 const updateQuoteSchema = z.object({
@@ -149,6 +258,7 @@ async function deductStockIfNeeded(
 const addItemSchema = z.object({
   quoteId: z.string().uuid(),
   mode: z.enum(["calculado", "manual"]),
+  itemType: z.enum(["producto", "extra"]).default("producto"),
   description: z.string().trim().max(500).optional().or(z.literal("")),
   quantity: z.coerce.number().int().min(1).max(100000).default(1),
   materialId: z.string().uuid().optional().or(z.literal("")),
@@ -163,6 +273,7 @@ const addItemSchema = z.object({
 type QuoteItemFields = {
   quote_id: string;
   product_id: null;
+  item_type: "producto" | "extra";
   description: string | null;
   peso_gramos: number | null;
   tiempo_horas: number | null;
@@ -188,6 +299,7 @@ async function buildQuoteItemFields(
     return {
       quote_id: parsed.quoteId,
       product_id: null,
+      item_type: parsed.itemType,
       description: parsed.description || "Ítem manual",
       peso_gramos: null,
       tiempo_horas: null,
@@ -234,6 +346,7 @@ async function buildQuoteItemFields(
   return {
     quote_id: parsed.quoteId,
     product_id: null,
+    item_type: parsed.itemType,
     description: parsed.description || null,
     peso_gramos: parsed.pesoGramos ?? null,
     tiempo_horas: parsed.tiempoHoras ?? null,
@@ -253,6 +366,7 @@ function parseItemForm(formData: FormData) {
   return addItemSchema.parse({
     quoteId: formData.get("quoteId"),
     mode: formData.get("mode"),
+    itemType: formData.get("itemType") || "producto",
     description: formData.get("description") || "",
     quantity: formData.get("quantity") || 1,
     materialId: formData.get("materialId") || "",

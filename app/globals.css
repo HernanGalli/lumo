@@ -5,6 +5,7 @@
   --color-azul-claro: #3a66b5;
   --color-rojo: #d73a31;
   --color-amarillo: #f5b91a;
+  --color-cian: #06b6d4;
 
   --background: #fdfdfd;
   --background-secundario: #f4f4f4;
@@ -45,6 +46,7 @@
   --color-azul-claro: var(--color-azul-claro);
   --color-rojo: var(--color-rojo);
   --color-amarillo: var(--color-amarillo);
+  --color-cian: var(--color-cian);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -70,8 +72,30 @@ body {
    tokens de arriba (light/dark) en vez de colores fijos donde corresponde.
    ========================================================================= */
 
+/* Identidad "Tech Luminescente" (Fase 4): el sitio público es dark-first por
+   diseño (para que el relieve 3D y los colores de escudos/marcas resalten),
+   independiente del toggle claro/oscuro que usa el backoffice — por eso
+   estos tokens se fijan acá y no dependen de [data-theme] ni de
+   prefers-color-scheme. El admin no se toca: sigue con --color-azul clásico. */
 .sitio-publico {
   font-family: var(--font-inter), sans-serif;
+
+  --color-azul: #ff6b00; /* acento primario: naranja eléctrico (CTAs, precios, marca) */
+  --color-azul-claro: #ff8a3d; /* hover del acento primario */
+  --color-amarillo: #facc15; /* acento secundario cálido: badges de oferta */
+  --color-cian: #00f0ff; /* acento de innovación: hovers, bordes glass, detalles de UI */
+  --color-rojo: #fb7185; /* solo estados de error/validación, no branding */
+
+  --background: #0f172a;
+  --background-secundario: #1e293b;
+  --surface: #1e293b;
+  --border: #334155;
+  --foreground: #f8fafc;
+  --foreground-muted: #94a3b8;
+
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
 }
 
 html {
@@ -312,13 +336,14 @@ html {
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   display: flex;
   flex-direction: column;
 }
 .producto-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-cian);
 }
 .producto-card__imagen-cont {
   position: relative;
@@ -336,8 +361,8 @@ html {
   position: absolute;
   top: 15px;
   right: 15px;
-  background-color: var(--color-rojo);
-  color: white;
+  background-color: var(--color-amarillo);
+  color: #1a1a1a;
   padding: 3px 12px;
   border-radius: 15px;
   font-size: 12px;
@@ -400,7 +425,7 @@ html {
 .precio--oferta {
   font-size: 22px;
   font-weight: 600;
-  color: var(--color-rojo);
+  color: var(--color-amarillo);
 }
 .card-gallery {
   width: 100%;
@@ -490,12 +515,13 @@ html {
 .a-medida .boton--blanco {
   padding: 15px 40px;
   font-size: 18px;
-  background-color: var(--color-rojo);
-  color: white;
+  background-color: var(--color-amarillo);
+  color: #1a1a1a;
   font-weight: 600;
 }
 .a-medida .boton--blanco:hover {
-  background-color: #c4544e;
+  background-color: var(--color-azul);
+  color: white;
 }
 
 /* ---- Showcase (publicaciones sin precio) ---- */

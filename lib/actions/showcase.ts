@@ -12,6 +12,7 @@ const postSchema = z.object({
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   categoryId: z.union([z.string().uuid(), z.literal("")]).optional(),
   status: z.enum(["draft", "published"]),
+  showOnHome: z.coerce.boolean().optional(),
 });
 
 export async function createShowcasePost(formData: FormData) {
@@ -21,6 +22,7 @@ export async function createShowcasePost(formData: FormData) {
     description: formData.get("description") || "",
     categoryId: formData.get("categoryId") || "",
     status: formData.get("status"),
+    showOnHome: formData.get("showOnHome") === "on",
   });
 
   const baseSlug = slugify(parsed.title);
@@ -51,6 +53,7 @@ export async function createShowcasePost(formData: FormData) {
       description: parsed.description || null,
       category_id: parsed.categoryId || null,
       status: parsed.status,
+      show_on_home: parsed.showOnHome ?? false,
       sort_order: (maxRow?.sort_order ?? -1) + 1,
     })
     .select("id")
@@ -69,6 +72,7 @@ export async function updateShowcasePost(formData: FormData) {
     description: formData.get("description") || "",
     categoryId: formData.get("categoryId") || "",
     status: formData.get("status"),
+    showOnHome: formData.get("showOnHome") === "on",
   });
 
   const { error } = await supabase
@@ -78,6 +82,7 @@ export async function updateShowcasePost(formData: FormData) {
       description: parsed.description || null,
       category_id: parsed.categoryId || null,
       status: parsed.status,
+      show_on_home: parsed.showOnHome ?? false,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

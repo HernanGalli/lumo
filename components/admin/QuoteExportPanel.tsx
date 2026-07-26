@@ -2,14 +2,15 @@
 
 import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
-import { QuoteDocumentPreview, type QuotePreviewData } from "@/components/admin/QuoteDocumentPreview";
+import { QuoteDocumentPreview } from "@/components/admin/QuoteDocumentPreview";
+import type { QuotePdfData } from "@/lib/pdf/quoteTemplate";
 
 export function QuoteExportPanel({
   quoteId,
   data,
 }: {
   quoteId: string;
-  data: QuotePreviewData;
+  data: QuotePdfData;
 }) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
